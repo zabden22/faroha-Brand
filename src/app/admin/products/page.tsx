@@ -158,6 +158,7 @@ export default function AdminProductsPage() {
       imageUrl: '/images/category_dresses.jpg',
     });
     setSelectedColors(['بيج', 'أسود']);
+    alert('تمت إضافة المنتج وإدراجه بالمتجر بنجاح! 🚀');
   };
 
   const handleEditProduct = (e: React.FormEvent) => {
@@ -176,6 +177,7 @@ export default function AdminProductsPage() {
     setProducts(updated);
     saveProducts(updated);
     setEditingProduct(null);
+    alert('تم حفظ تعديلات المنتج بنجاح! ✨');
   };
 
   const handleDeleteProduct = (id: number, name: string) => {
@@ -183,6 +185,7 @@ export default function AdminProductsPage() {
       const updated = products.filter((p) => p.id !== id);
       setProducts(updated);
       saveProducts(updated);
+      alert('تم حذف المنتج من المتجر بنجاح! 🗑️');
     }
   };
 

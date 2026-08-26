@@ -52,6 +52,7 @@ export default function AdminCategoriesPage() {
     saveCategories(updated);
     setNewCatName('');
     setNewCatImage('/images/category_dresses.jpg');
+    alert('تمت إضافة القسم وحفظه بنجاح! 🎉');
   };
 
   const handleEditCategory = (e: React.FormEvent) => {
@@ -64,6 +65,7 @@ export default function AdminCategoriesPage() {
     setCategories(updated);
     saveCategories(updated);
     setEditingCategory(null);
+    alert('تم حفظ تعديلات القسم بنجاح! ✨');
   };
 
   const handleDelete = (id: number, name: string) => {
@@ -78,6 +80,7 @@ export default function AdminCategoriesPage() {
         p.categoryId === id ? { ...p, categoryId: updated[0]?.id || 1 } : p
       );
       saveProducts(updatedProducts);
+      alert('تم حذف القسم بنجاح! 🗑️');
     }
   };
 

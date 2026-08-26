@@ -210,7 +210,11 @@ export const getCategories = (): Category[] => {
   if (typeof window === 'undefined') return INITIAL_CATEGORIES;
   try {
     const data = localStorage.getItem('faroha_categories');
-    return data ? JSON.parse(data) : INITIAL_CATEGORIES;
+    if (data === null) {
+      localStorage.setItem('faroha_categories', JSON.stringify(INITIAL_CATEGORIES));
+      return INITIAL_CATEGORIES;
+    }
+    return JSON.parse(data);
   } catch (e) {
     return INITIAL_CATEGORIES;
   }
@@ -230,7 +234,11 @@ export const getProducts = (): Product[] => {
   if (typeof window === 'undefined') return INITIAL_PRODUCTS;
   try {
     const data = localStorage.getItem('faroha_products');
-    return data ? JSON.parse(data) : INITIAL_PRODUCTS;
+    if (data === null) {
+      localStorage.setItem('faroha_products', JSON.stringify(INITIAL_PRODUCTS));
+      return INITIAL_PRODUCTS;
+    }
+    return JSON.parse(data);
   } catch (e) {
     return INITIAL_PRODUCTS;
   }
@@ -250,7 +258,11 @@ export const getDeliveryFees = (): DeliveryFee[] => {
   if (typeof window === 'undefined') return INITIAL_DELIVERY_FEES;
   try {
     const data = localStorage.getItem('faroha_delivery_fees');
-    return data ? JSON.parse(data) : INITIAL_DELIVERY_FEES;
+    if (data === null) {
+      localStorage.setItem('faroha_delivery_fees', JSON.stringify(INITIAL_DELIVERY_FEES));
+      return INITIAL_DELIVERY_FEES;
+    }
+    return JSON.parse(data);
   } catch (e) {
     return INITIAL_DELIVERY_FEES;
   }
@@ -270,7 +282,11 @@ export const getOrders = (): Order[] => {
   if (typeof window === 'undefined') return INITIAL_ORDERS;
   try {
     const data = localStorage.getItem('faroha_orders');
-    return data ? JSON.parse(data) : INITIAL_ORDERS;
+    if (data === null) {
+      localStorage.setItem('faroha_orders', JSON.stringify(INITIAL_ORDERS));
+      return INITIAL_ORDERS;
+    }
+    return JSON.parse(data);
   } catch (e) {
     return INITIAL_ORDERS;
   }
