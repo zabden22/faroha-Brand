@@ -3,7 +3,21 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getProducts, saveProducts, getCategories } from '@/lib/store';
-import { Product, Category } from '@/types';
+import { Product, Category, ProductVariant } from '@/types';
+
+// Pre-configured colors dictionary with swatches
+const COLOR_OPTIONS = [
+  { name: 'أسود', hex: '#222222' },
+  { name: 'بيج', hex: '#D4B9A7' },
+  { name: 'موف', hex: '#A3798A' },
+  { name: 'زيتي', hex: '#6B8E7B' },
+  { name: 'نبيذي', hex: '#6B1D2F' },
+  { name: 'بني', hex: '#5C4033' },
+  { name: 'كحلي', hex: '#1B263B' },
+  { name: 'أوف وايت', hex: '#F5F5DC' },
+  { name: 'وردي', hex: '#E8A598' },
+  { name: 'رمادي', hex: '#888888' },
+];
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -11,7 +25,7 @@ export default function AdminProductsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // New Product Form state
+  // Form State
   const [newProduct, setNewProduct] = useState({
     name: '',
     price: '',
@@ -21,9 +35,9 @@ export default function AdminProductsPage() {
     material: '',
     fit: '',
     imageUrl: '/images/category_dresses.jpg',
-    size: 'L',
-    color: 'أسود',
   });
+
+  const [selectedColors, setSelectedColors] = useState<string[]>(['بيج', 'أسود']);
 
   const loadData = () => {
     const cats = getCategories();
@@ -40,12 +54,75 @@ export default function AdminProductsPage() {
     return () => window.removeEventListener('storeUpdated', loadData);
   }, []);
 
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isEdit && editingProduct) {
+        const updatedImages = [{ id: Date.now(), productId: editingProduct.id, imageUrl: base64String }];
+        setEditingProduct({ ...editingProduct, images: updatedImages });
+      } else {
+        setNewProduct({ ...newProduct, imageUrl: base64String });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const toggleColor = (colorName: string, isEdit = false) => {
+    if (isEdit && editingProduct) {
+      const currentVariants = editingProduct.variants || [];
+      const exists = currentVariants.some((v) => v.color === colorName);
+      let updatedVariants: ProductVariant[];
+
+      if (exists) {
+        updatedVariants = currentVariants.filter((v) => v.color !== colorName);
+      } else {
+        const colorObj = COLOR_OPTIONS.find((c) => c.name === colorName) || { name: colorName, hex: '#888' };
+        const newVariant: ProductVariant = {
+          id: Date.now() + Math.floor(Math.random() * 100),
+          productId: editingProduct.id,
+          size: 'L',
+          color: colorObj.name,
+          colorHex: colorObj.hex,
+          stock: 10,
+        };
+        updatedVariants = [...currentVariants, newVariant];
+      }
+
+      setEditingProduct({ ...editingProduct, variants: updatedVariants });
+    } else {
+      if (selectedColors.includes(colorName)) {
+        setSelectedColors(selectedColors.filter((c) => c !== colorName));
+      } else {
+        setSelectedColors([...selectedColors, colorName]);
+      }
+    }
+  };
+
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.price) return;
 
     const catId = Number(newProduct.categoryId) || categories[0]?.id || 1;
     const selectedCategory = categories.find((c) => c.id === catId) || categories[0];
+
+    // Build variants for selected colors
+    const variants: ProductVariant[] = (selectedColors.length > 0 ? selectedColors : ['أسود']).map(
+      (colorName, idx) => {
+        const colorObj = COLOR_OPTIONS.find((c) => c.name === colorName) || { name: colorName, hex: '#888' };
+        return {
+          id: Date.now() + idx,
+          productId: Date.now(),
+          size: 'L',
+          color: colorObj.name,
+          colorHex: colorObj.hex,
+          stock: 10,
+        };
+      }
+    );
 
     const created: Product = {
       id: Date.now(),
@@ -63,16 +140,7 @@ export default function AdminProductsPage() {
       isFeatured: false,
       createdAt: new Date().toISOString(),
       images: [{ id: Date.now(), productId: Date.now(), imageUrl: newProduct.imageUrl || '/images/category_dresses.jpg' }],
-      variants: [
-        {
-          id: Date.now(),
-          productId: Date.now(),
-          size: newProduct.size || 'L',
-          color: newProduct.color || 'أسود',
-          colorHex: '#222222',
-          stock: 15,
-        },
-      ],
+      variants,
     };
 
     const updated = [created, ...products];
@@ -88,9 +156,8 @@ export default function AdminProductsPage() {
       material: '',
       fit: '',
       imageUrl: '/images/category_dresses.jpg',
-      size: 'L',
-      color: 'أسود',
     });
+    setSelectedColors(['بيج', 'أسود']);
   };
 
   const handleEditProduct = (e: React.FormEvent) => {
@@ -184,19 +251,68 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">صورة المنتج الرئيسية</label>
-              <select
-                className="form-select"
-                value={newProduct.imageUrl}
-                onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
-              >
-                <option value="/images/category_esdals.jpg">إسدالات (/images/category_esdals.jpg)</option>
-                <option value="/images/category_dresses.jpg">دريسات (/images/category_dresses.jpg)</option>
-                <option value="/images/category_loose.jpg">ملابس واسعة (/images/category_loose.jpg)</option>
-                <option value="/images/category_new.jpg">تشكيلة جديدة (/images/category_new.jpg)</option>
-                <option value="/images/category_offers.jpg">عروض (/images/category_offers.jpg)</option>
-              </select>
+            <div className="form-group full-width">
+              <label className="form-label">رفع صورة المنتج من جهازك (كمبيوتر / موبايل) 📁</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="form-input"
+                onChange={(e) => handleImageFileUpload(e, false)}
+              />
+            </div>
+
+            {newProduct.imageUrl && (
+              <div className="form-group full-width" style={{ alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-text-light)', marginBottom: '4px' }}>معاينة صورة المنتج:</span>
+                <Image
+                  src={newProduct.imageUrl}
+                  alt="معاينة"
+                  width={90}
+                  height={110}
+                  style={{ borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--color-border)' }}
+                />
+              </div>
+            )}
+
+            {/* Colors Selector */}
+            <div className="form-group full-width">
+              <label className="form-label">تحديد الألوان المتاحة للمنتج 🎨 (انقري لاختيار الألوان)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
+                {COLOR_OPTIONS.map((c) => {
+                  const isSelected = selectedColors.includes(c.name);
+                  return (
+                    <button
+                      type="button"
+                      key={c.name}
+                      onClick={() => toggleColor(c.name, false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                        background: isSelected ? 'var(--color-surface)' : 'var(--color-bg)',
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          background: c.hex,
+                          border: '1px solid rgba(0,0,0,0.2)',
+                        }}
+                      />
+                      <span>{c.name}</span>
+                      {isSelected && <span>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="form-group">
@@ -207,6 +323,17 @@ export default function AdminProductsPage() {
                 placeholder="مثال: قطن ناعم 100%"
                 value={newProduct.material}
                 onChange={(e) => setNewProduct({ ...newProduct, material: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">القصة / Fit</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="مثال: واسع / Oversized"
+                value={newProduct.fit}
+                onChange={(e) => setNewProduct({ ...newProduct, fit: e.target.value })}
               />
             </div>
 
@@ -244,7 +371,7 @@ export default function AdminProductsPage() {
                 <th>القسم</th>
                 <th>السعر الأصلي</th>
                 <th>السعر الحالي</th>
-                <th>الخامة</th>
+                <th>الألوان المتاحة</th>
                 <th>الإجراءات</th>
               </tr>
             </thead>
@@ -252,6 +379,7 @@ export default function AdminProductsPage() {
               {products.map((p) => {
                 const catName = categories.find((c) => c.id === p.categoryId)?.name || p.category?.name || 'عام';
                 const mainImg = p.images?.[0]?.imageUrl || '/images/category_dresses.jpg';
+                const colorNames = p.variants?.map((v) => v.color).filter((value, index, self) => self.indexOf(value) === index) || [];
 
                 return (
                   <tr key={p.id}>
@@ -272,7 +400,23 @@ export default function AdminProductsPage() {
                     <td style={{ fontWeight: 700, color: 'var(--color-primary-dark)' }}>
                       {p.discountPrice ? `${p.discountPrice} ج.م` : `${p.price} ج.م`}
                     </td>
-                    <td>{p.material || 'قطن'}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {colorNames.map((col, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              fontSize: '11px',
+                              background: 'var(--color-bg-secondary)',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            {col}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
@@ -316,7 +460,7 @@ export default function AdminProductsPage() {
             style={{
               background: 'white',
               borderRadius: 'var(--radius-lg)',
-              maxWidth: '600px',
+              maxWidth: '650px',
               width: '100%',
               padding: '24px',
               maxHeight: '90vh',
@@ -363,29 +507,46 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">السعر بعد الخصم (ج.م)</label>
+              <div className="form-group full-width">
+                <label className="form-label">رفع صورة جديدة من جهازك (اختياري)</label>
                 <input
-                  type="number"
+                  type="file"
+                  accept="image/*"
                   className="form-input"
-                  value={editingProduct.discountPrice || ''}
-                  onChange={(e) =>
-                    setEditingProduct({
-                      ...editingProduct,
-                      discountPrice: e.target.value ? Number(e.target.value) : null,
-                    })
-                  }
+                  onChange={(e) => handleImageFileUpload(e, true)}
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">الخامة</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editingProduct.material || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, material: e.target.value })}
-                />
+              {/* Edit Colors Selector */}
+              <div className="form-group full-width">
+                <label className="form-label">الألوان المتاحة للمنتج (انقري للإضافة أو الحذف)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                  {COLOR_OPTIONS.map((c) => {
+                    const isSelected = editingProduct.variants?.some((v) => v.color === c.name);
+                    return (
+                      <button
+                        type="button"
+                        key={c.name}
+                        onClick={() => toggleColor(c.name, true)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                          background: isSelected ? 'var(--color-surface)' : 'var(--color-bg)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: c.hex }} />
+                        <span>{c.name}</span>
+                        {isSelected && <span>✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="form-group full-width">

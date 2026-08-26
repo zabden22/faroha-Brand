@@ -21,6 +21,22 @@ export default function AdminCategoriesPage() {
     return () => window.removeEventListener('storeUpdated', loadData);
   }, []);
 
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isEdit && editingCategory) {
+        setEditingCategory({ ...editingCategory, image: base64String });
+      } else {
+        setNewCatImage(base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
@@ -69,7 +85,7 @@ export default function AdminCategoriesPage() {
     <div>
       <h1 className="admin-page-title">إدارة الأقسام 🏷️</h1>
 
-      <form onSubmit={handleAddCategory} className="checkout-section" style={{ marginBottom: '24px', maxWidth: '600px' }}>
+      <form onSubmit={handleAddCategory} className="checkout-section" style={{ marginBottom: '24px', maxWidth: '650px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>إضافة قسم جديد للمتجر</h3>
         
         <div className="form-grid">
@@ -86,19 +102,47 @@ export default function AdminCategoriesPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">مسار / رابط صوة القسم</label>
+            <label className="form-label">اختيار صورة جاهزة من المكتبة</label>
             <select
               className="form-select"
-              value={newCatImage}
-              onChange={(e) => setNewCatImage(e.target.value)}
+              value={newCatImage.startsWith('data:') ? 'custom' : newCatImage}
+              onChange={(e) => {
+                if (e.target.value !== 'custom') {
+                  setNewCatImage(e.target.value);
+                }
+              }}
             >
               <option value="/images/category_esdals.jpg">إسدالات (/images/category_esdals.jpg)</option>
               <option value="/images/category_dresses.jpg">دريسات (/images/category_dresses.jpg)</option>
               <option value="/images/category_loose.jpg">ملابس واسعة (/images/category_loose.jpg)</option>
               <option value="/images/category_new.jpg">تشكيلة جديدة (/images/category_new.jpg)</option>
               <option value="/images/category_offers.jpg">عروض (/images/category_offers.jpg)</option>
+              {newCatImage.startsWith('data:') && <option value="custom">صورة مخصصة من الجهاز 📁</option>}
             </select>
           </div>
+
+          <div className="form-group full-width">
+            <label className="form-label">أو رفع صورة من جهازك (كمبيوتر / موبايل) 📁</label>
+            <input
+              type="file"
+              accept="image/*"
+              className="form-input"
+              onChange={(e) => handleImageFileUpload(e, false)}
+            />
+          </div>
+
+          {newCatImage && (
+            <div className="form-group full-width" style={{ alignItems: 'center', marginBlock: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-light)', marginBottom: '4px' }}>معاينة صورة القسم:</span>
+              <Image
+                src={newCatImage}
+                alt="معاينة"
+                width={80}
+                height={100}
+                style={{ borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--color-border)' }}
+              />
+            </div>
+          )}
 
           <div className="form-group full-width" style={{ marginTop: '8px' }}>
             <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
@@ -177,7 +221,7 @@ export default function AdminCategoriesPage() {
             style={{
               background: 'white',
               borderRadius: 'var(--radius-lg)',
-              maxWidth: '480px',
+              maxWidth: '520px',
               width: '100%',
               padding: '24px',
             }}
@@ -197,19 +241,27 @@ export default function AdminCategoriesPage() {
               </div>
 
               <div className="form-group full-width">
-                <label className="form-label">صورة القسم</label>
-                <select
-                  className="form-select"
-                  value={editingCategory.image}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, image: e.target.value })}
-                >
-                  <option value="/images/category_esdals.jpg">إسدالات (/images/category_esdals.jpg)</option>
-                  <option value="/images/category_dresses.jpg">دريسات (/images/category_dresses.jpg)</option>
-                  <option value="/images/category_loose.jpg">ملابس واسعة (/images/category_loose.jpg)</option>
-                  <option value="/images/category_new.jpg">تشكيلة جديدة (/images/category_new.jpg)</option>
-                  <option value="/images/category_offers.jpg">عروض (/images/category_offers.jpg)</option>
-                </select>
+                <label className="form-label">رفع صورة جديدة من جهازك (اختياري)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-input"
+                  onChange={(e) => handleImageFileUpload(e, true)}
+                />
               </div>
+
+              {editingCategory.image && (
+                <div className="form-group full-width" style={{ alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-light)', marginBottom: '4px' }}>الصورة الحالية:</span>
+                  <Image
+                    src={editingCategory.image}
+                    alt="معاينة"
+                    width={70}
+                    height={85}
+                    style={{ borderRadius: '6px', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
 
               <div className="form-group full-width" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
