@@ -197,3 +197,91 @@ export const INITIAL_ORDERS: Order[] = [
     ]
   }
 ];
+
+// Helper Dispatch Event for Store Reactivity
+export const notifyStoreUpdate = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storeUpdated'));
+  }
+};
+
+// Real-Time Dynamic Storage Getters & Setters
+export const getCategories = (): Category[] => {
+  if (typeof window === 'undefined') return INITIAL_CATEGORIES;
+  try {
+    const data = localStorage.getItem('faroha_categories');
+    return data ? JSON.parse(data) : INITIAL_CATEGORIES;
+  } catch (e) {
+    return INITIAL_CATEGORIES;
+  }
+};
+
+export const saveCategories = (categories: Category[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('faroha_categories', JSON.stringify(categories));
+    notifyStoreUpdate();
+  } catch (e) {
+    console.error('Error saving categories', e);
+  }
+};
+
+export const getProducts = (): Product[] => {
+  if (typeof window === 'undefined') return INITIAL_PRODUCTS;
+  try {
+    const data = localStorage.getItem('faroha_products');
+    return data ? JSON.parse(data) : INITIAL_PRODUCTS;
+  } catch (e) {
+    return INITIAL_PRODUCTS;
+  }
+};
+
+export const saveProducts = (products: Product[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('faroha_products', JSON.stringify(products));
+    notifyStoreUpdate();
+  } catch (e) {
+    console.error('Error saving products', e);
+  }
+};
+
+export const getDeliveryFees = (): DeliveryFee[] => {
+  if (typeof window === 'undefined') return INITIAL_DELIVERY_FEES;
+  try {
+    const data = localStorage.getItem('faroha_delivery_fees');
+    return data ? JSON.parse(data) : INITIAL_DELIVERY_FEES;
+  } catch (e) {
+    return INITIAL_DELIVERY_FEES;
+  }
+};
+
+export const saveDeliveryFees = (fees: DeliveryFee[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('faroha_delivery_fees', JSON.stringify(fees));
+    notifyStoreUpdate();
+  } catch (e) {
+    console.error('Error saving delivery fees', e);
+  }
+};
+
+export const getOrders = (): Order[] => {
+  if (typeof window === 'undefined') return INITIAL_ORDERS;
+  try {
+    const data = localStorage.getItem('faroha_orders');
+    return data ? JSON.parse(data) : INITIAL_ORDERS;
+  } catch (e) {
+    return INITIAL_ORDERS;
+  }
+};
+
+export const saveOrders = (orders: Order[]): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('faroha_orders', JSON.stringify(orders));
+    notifyStoreUpdate();
+  } catch (e) {
+    console.error('Error saving orders', e);
+  }
+};

@@ -1,13 +1,34 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
-import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '@/lib/store';
+import SizeGuide from '@/components/SizeGuide';
+import { getCategories, getProducts } from '@/lib/store';
+import { Category, Product } from '@/types';
 
 export default function Home() {
-  const featuredProducts = INITIAL_PRODUCTS.filter((p) => p.isFeatured);
-  const newArrivals = INITIAL_PRODUCTS.filter((p) => p.isNew);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  const loadData = () => {
+    setCategories(getCategories());
+    setProducts(getProducts());
+  };
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('storeUpdated', loadData);
+    return () => window.removeEventListener('storeUpdated', loadData);
+  }, []);
+
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  const featuredProducts = products.filter((p) => p.isFeatured || p.isNew).slice(0, 4);
+  const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4);
 
   return (
     <>
@@ -36,28 +57,34 @@ export default function Home() {
                 <Link href="/shop" className="btn btn-primary btn-lg">
                   تسوقي الآن 🛍️
                 </Link>
-                <Link href="/shop?category=esdals" className="btn btn-outline btn-lg">
-                  استكشفي الإسدالات
+                <Link href="/shop" className="btn btn-outline btn-lg">
+                  استكشفي التشكيلة
                 </Link>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Categories Section */}
-        <section className="section">
+        {/* Categories Section (Dynamic) */}
+        <section className="section bg-secondary">
           <div className="container">
-            <div className="text-center" style={{ marginBottom: '40px' }}>
-              <h2 className="section-title">تسوقي حسب القسم</h2>
-              <p className="section-subtitle">تشكيلة واسعة تناسب كل أوقاتكِ وتطلعاتكِ</p>
-            </div>
+            <h2 className="section-title text-center">أقسام المتجر</h2>
+            <p className="section-subtitle text-center">تصفحي تشكيلاتنا المتنوعة والمصممة بحب</p>
 
             <div className="categories-grid">
-              {INITIAL_CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <Link key={cat.id} href={`/shop?category=${cat.id}`} className="category-card">
-                  <Image src={cat.image} alt={cat.name} fill sizes="300px" style={{ objectFit: 'cover' }} />
-                  <div className="category-card-overlay">
-                    <span className="category-card-name">{cat.name}</span>
+                  <div className="category-card-image">
+                    <Image
+                      src={cat.image || '/images/category_dresses.jpg'}
+                      alt={cat.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div className="category-card-overlay" />
+                  <div className="category-card-content">
+                    <h3 className="category-card-name">{cat.name}</h3>
                   </div>
                 </Link>
               ))}
@@ -65,56 +92,37 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Featured Products */}
-        <section className="section" style={{ background: 'var(--color-bg-alt)' }}>
+        {/* Featured Products Section (Dynamic) */}
+        <section className="section">
           <div className="container">
-            <div className="text-center" style={{ marginBottom: '40px' }}>
-              <h2 className="section-title">الموديلات الأكثر طلباً</h2>
-              <p className="section-subtitle">اخترناها لكِ بعناية لتعكس حشمتكِ وأناقتكِ</p>
-            </div>
+            <h2 className="section-title text-center">المنتجات المميزة 🌸</h2>
+            <p className="section-subtitle text-center">أحدث وأحدث تصاميم FarOha_Brand الأكثر طلباً</p>
 
             <div className="products-grid">
-              {featuredProducts.map((product) => (
+              {displayProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
 
-            <div className="text-center" style={{ marginTop: '40px' }}>
+            <div style={{ textAlign: 'center', marginTop: '40px' }}>
               <Link href="/shop" className="btn btn-outline btn-lg">
-                عرض جميع المنتجات
+                عرض جميع المنتجات في المتجر ↗
               </Link>
             </div>
           </div>
         </section>
 
-        {/* New Arrivals */}
-        <section className="section">
+        {/* Size Guide Section */}
+        <section className="section bg-secondary text-center">
           <div className="container">
-            <div className="text-center" style={{ marginBottom: '40px' }}>
-              <h2 className="section-title">وصل حديثاً ✨</h2>
-              <p className="section-subtitle">أحدث إبداعات FarOha_Brand هذا الموسم</p>
-            </div>
-
-            <div className="products-grid">
-              {newArrivals.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* About Brand Banner */}
-        <section className="section" style={{ paddingBlock: '40px' }}>
-          <div className="container">
-            <div className="about-section">
-              <h2 className="section-title" style={{ marginBottom: '16px' }}>
-                عن FarOha_Brand
-              </h2>
-              <p>
-                FarOha_Brand بتقدملك ملابس للمرأة اللي بتحب الحشمة، الراحة، والأناقة البسيطة.
-                نصمم كل قطعة باهتمام بالغ بالتفاصيل وجودة الأقمشة، لنوفر لكِ إطلالة فضفاضة تعبر عن ذاتك وتمنحكِ الثقة في كل خطوة.
-              </p>
-            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>📏 لستِ متأكدة من مقاسكِ؟</h3>
+            <p style={{ color: 'var(--color-text-light)', marginBottom: '16px' }}>
+              شاهدي دليل المقاسات التفاعلي الخاص بـ FarOha_Brand لاختيار المقاس الأنسب لكِ بسهولة
+            </p>
+            <button className="btn btn-outline" onClick={() => setIsSizeGuideOpen(true)}>
+              عرض دليل المقاسات 📏
+            </button>
+            <SizeGuide isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
           </div>
         </section>
       </main>

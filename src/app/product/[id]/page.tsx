@@ -1,26 +1,38 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import SizeGuide from '@/components/SizeGuide';
-import { INITIAL_PRODUCTS } from '@/lib/store';
+import { getProducts } from '@/lib/store';
+import { Product } from '@/types';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const productId = Number(resolvedParams.id);
-  const product = INITIAL_PRODUCTS.find((p) => p.id === productId) || INITIAL_PRODUCTS[0];
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const [selectedImage, setSelectedImage] = useState(product.images?.[0]?.imageUrl || '/images/category_dresses.jpg');
-  const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || null);
+  useEffect(() => {
+    const loadProducts = () => {
+      setProducts(getProducts());
+    };
+    loadProducts();
+    window.addEventListener('storeUpdated', loadProducts);
+    return () => window.removeEventListener('storeUpdated', loadProducts);
+  }, []);
+
+  const product = products.find((p) => p.id === productId) || products[0] || getProducts()[0];
+
+  const [selectedImage, setSelectedImage] = useState(product?.images?.[0]?.imageUrl || '/images/category_dresses.jpg');
+  const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null);
   const [quantity, setQuantity] = useState(1);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'care'>('details');
 
-  const similarProducts = INITIAL_PRODUCTS.filter((p) => p.id !== product.id).slice(0, 3);
+  const similarProducts = products.filter((p) => p.id !== product?.id).slice(0, 3);
 
   const handleAddToCart = (buyNow = false) => {
     try {
