@@ -13,40 +13,61 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
   const [whatsappUrl, setWhatsappUrl] = useState('');
 
   useEffect(() => {
-    try {
-      const orders = JSON.parse(localStorage.getItem('faroha_orders') || '[]');
-      const found = orders.find((o: any) => o.orderNumber === orderNumber) || orders[0];
-
-      if (found) {
-        setOrder(found);
-
-        // Format pre-filled WhatsApp message
-        const storePhone = process.env.NEXT_PUBLIC_STORE_WHATSAPP || '201099998877';
-
-        const itemsText = (found.items || [])
-          .map(
-            (item: any) =>
-              `• ${item.product?.name || 'منتج'} — ${item.variant?.color || ''} — ${item.variant?.size || ''} (العدد: ${item.quantity})`
-          )
-          .join('\n');
-
-        const message = `🛍️ طلب جديد من FarOha_Brand\n\n` +
-          `رقم الطلب: ${found.orderNumber}\n` +
-          `الاسم: ${found.customerName}\n` +
-          `الهاتف: ${found.phone}\n\n` +
-          `المنتجات:\n${itemsText}\n\n` +
-          `الإجمالي الفرعي: ${found.subtotal} جنيه\n` +
-          `مصاريف الشحن: ${found.deliveryFee} جنيه\n` +
-          `الإجمالي الكلي: ${found.totalAmount} جنيه\n\n` +
-          `العنوان:\n${found.governorate}، ${found.city} — ${found.address}\n\n` +
-          `طريقة الدفع:\n${found.paymentMethod}`;
-
-        const encodedMsg = encodeURIComponent(message);
-        setWhatsappUrl(`https://wa.me/${storePhone}?text=${encodedMsg}`);
+    // Try API first (orders from DB), then fallback to latest_order in localStorage (for same-session)
+    const loadOrder = async () => {
+      try {
+        // 1) Try from database API
+        const res = await fetch('/api/orders');
+        if (res.ok) {
+          const orders = await res.json();
+          const found = orders.find((o: any) => o.orderNumber === orderNumber);
+          if (found) {
+            setOrderAndWhatsapp(found);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
-    }
+
+      // 2) Fallback: latest order saved in localStorage (same session redirect)
+      try {
+        const latestStr = localStorage.getItem('faroha_latest_order');
+        if (latestStr) {
+          const found = JSON.parse(latestStr);
+          if (found.orderNumber === orderNumber) {
+            setOrderAndWhatsapp(found);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    const setOrderAndWhatsapp = (found: any) => {
+      setOrder(found);
+      const storePhone = process.env.NEXT_PUBLIC_STORE_WHATSAPP || '201099998877';
+      const itemsText = (found.items || [])
+        .map(
+          (item: any) =>
+            `• ${item.productName || 'منتج'} — ${item.variantInfo || ''} (العدد: ${item.quantity})`
+        )
+        .join('\n');
+
+      const message = `🛍️ طلب جديد من FarOha_Brand\n\n` +
+        `رقم الطلب: ${found.orderNumber}\n` +
+        `الاسم: ${found.customerName}\n` +
+        `الهاتف: ${found.phone}\n\n` +
+        `المنتجات:\n${itemsText}\n\n` +
+        `مصاريف الشحن: ${found.deliveryFee} جنيه\n` +
+        `الإجمالي الكلي: ${found.totalAmount + (found.deliveryFee || 0)} جنيه\n\n` +
+        `العنوان:\n${found.governorate}، ${found.city} — ${found.address}\n\n` +
+        `طريقة الدفع:\n${found.paymentMethod}`;
+
+      setWhatsappUrl(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`);
+    };
+
+    loadOrder();
   }, [orderNumber]);
 
   return (
@@ -59,7 +80,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
           <h1 className="section-title">تم استلام طلبكِ بنجاح! 🎉</h1>
           <p className="order-number">رقم الطلب: {orderNumber}</p>
           <p className="section-subtitle">
-            شكراً لثقتكِ بـ FarOha_Brand! تم تسجيل طلبكِ وجاري تجهيزه للشحن.
+            شكراً لثقتكِ بـ FarOha_Brand! تم تسجيل طلبكِ في قاعدة البيانات وجاري تجهيزه للشحن.
           </p>
 
           {order && (
@@ -69,13 +90,12 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
               <p><strong>الهاتف:</strong> {order.phone}</p>
               <p><strong>العنوان:</strong> {order.governorate}، {order.city} — {order.address}</p>
               <p style={{ marginTop: '8px' }}>
-                <strong>إجمالي المبلغ:</strong> <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{order.totalAmount} ج.م</span> (شامل الشحن)
+                <strong>إجمالي المبلغ:</strong> <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{order.totalAmount + (order.deliveryFee || 0)} ج.م</span> (شامل الشحن)
               </p>
             </div>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', marginTop: '32px' }}>
-            {/* WhatsApp Deep Link Button */}
             {whatsappUrl && (
               <a
                 href={whatsappUrl}

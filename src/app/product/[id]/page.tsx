@@ -7,7 +7,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import SizeGuide from '@/components/SizeGuide';
-import { getProducts } from '@/lib/store';
 import { Product } from '@/types';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,7 +23,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       .catch((e) => console.error('Error fetching product:', e));
   }, []);
 
-  const product = products.find((p) => p.id === productId) || products[0] || getProducts()[0];
+  const product = products.find((p) => p.id === productId) || products[0];
 
   const [selectedImage, setSelectedImage] = useState(product?.images?.[0]?.imageUrl || '/images/category_dresses.jpg');
   const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null);

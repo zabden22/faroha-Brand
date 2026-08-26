@@ -6,8 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { INITIAL_DELIVERY_FEES } from '@/lib/store';
-import { EGYPTIAN_GOVERNORATES, Order } from '@/types';
+import { EGYPTIAN_GOVERNORATES } from '@/types';
 
 export default function CheckoutPage() {
   const router = useRouter();

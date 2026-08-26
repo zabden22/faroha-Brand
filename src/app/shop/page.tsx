@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
-import { getCategories, getProducts } from '@/lib/store';
 import { Product, Category } from '@/types';
 
 function ShopContent() {

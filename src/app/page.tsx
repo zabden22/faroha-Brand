@@ -7,7 +7,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import SizeGuide from '@/components/SizeGuide';
-import { getCategories, getProducts } from '@/lib/store';
 import { Category, Product } from '@/types';
 
 export default function Home() {
