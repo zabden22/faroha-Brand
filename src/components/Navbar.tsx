@@ -141,13 +141,6 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/admin"
-            style={{ marginTop: '20px', color: 'var(--color-primary)', fontWeight: 600 }}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            لوحة الإدارة
-          </Link>
         </nav>
       </aside>
     </>

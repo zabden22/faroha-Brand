@@ -15,9 +15,9 @@ export default function AdminLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // If already logged in, redirect to admin dashboard directly
+    // If already logged in in current session, redirect to admin dashboard directly
     try {
-      if (localStorage.getItem('faroha_admin_authenticated') === 'true') {
+      if (sessionStorage.getItem('faroha_admin_authenticated') === 'true') {
         router.push('/admin');
       }
     } catch (e) {
@@ -37,8 +37,8 @@ export default function AdminLoginPage() {
 
     if (isValidEmail && isValidPassword) {
       try {
-        localStorage.setItem('faroha_admin_authenticated', 'true');
-        localStorage.setItem('faroha_admin_email', normalizedEmail);
+        sessionStorage.setItem('faroha_admin_authenticated', 'true');
+        sessionStorage.setItem('faroha_admin_email', normalizedEmail);
         router.push('/admin');
       } catch (err) {
         setError('حدث خطأ أثناء حفظ الجلسة.');

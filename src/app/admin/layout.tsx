@@ -20,7 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     try {
-      const auth = localStorage.getItem('faroha_admin_authenticated');
+      const auth = sessionStorage.getItem('faroha_admin_authenticated');
       if (auth === 'true') {
         setIsAuthenticated(true);
       } else {
@@ -34,6 +34,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [pathname, isLoginPage, router]);
 
   const handleLogout = () => {
+    sessionStorage.removeItem('faroha_admin_authenticated');
+    sessionStorage.removeItem('faroha_admin_email');
     localStorage.removeItem('faroha_admin_authenticated');
     localStorage.removeItem('faroha_admin_email');
     router.push('/admin/login');
