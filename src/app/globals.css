@@ -70,11 +70,11 @@
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
   --font-size-md: 1.125rem;
-  --font-size-lg: 1.25rem;
-  --font-size-xl: 1.5rem;
-  --font-size-2xl: 2rem;
-  --font-size-3xl: 2.5rem;
-  --font-size-4xl: 3rem;
+  --font-size-lg: clamp(1.15rem, 1vw + 1rem, 1.25rem);
+  --font-size-xl: clamp(1.25rem, 1.5vw + 1rem, 1.5rem);
+  --font-size-2xl: clamp(1.5rem, 2vw + 1.1rem, 2rem);
+  --font-size-3xl: clamp(1.75rem, 3vw + 1.2rem, 2.5rem);
+  --font-size-4xl: clamp(2rem, 4vw + 1.3rem, 3rem);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -2100,6 +2100,22 @@ ul, ol {
   .product-gallery-thumbs {
     overflow-x: auto;
     padding-block-end: var(--space-sm);
+  }
+}
+
+@media (max-width: 360px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  .categories-grid {
+    grid-template-columns: 1fr;
+  }
+  .categories-grid > *:last-child {
+    grid-column: span 1;
+  }
+  .stats-grid,
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
