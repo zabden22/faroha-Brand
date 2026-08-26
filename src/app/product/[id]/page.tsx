@@ -16,12 +16,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const loadProducts = () => {
-      setProducts(getProducts());
-    };
-    loadProducts();
-    window.addEventListener('storeUpdated', loadProducts);
-    return () => window.removeEventListener('storeUpdated', loadProducts);
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setProducts(data);
+      })
+      .catch((e) => console.error('Error fetching product:', e));
   }, []);
 
   const product = products.find((p) => p.id === productId) || products[0] || getProducts()[0];

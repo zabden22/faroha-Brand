@@ -1,67 +1,59 @@
 'use client';
 
-import { useState } from 'react';
-import { INITIAL_DELIVERY_FEES } from '@/lib/store';
+import { useState, useEffect } from 'react';
+import { DeliveryFee } from '@/types';
 
 export default function AdminDeliveryFeesPage() {
-  const [fees, setFees] = useState(INITIAL_DELIVERY_FEES);
-  const [searchGov, setSearchGov] = useState('');
+  const [fees, setFees] = useState<DeliveryFee[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleFeeChange = (id: number, newFee: number) => {
-    setFees(fees.map((f) => (f.id === id ? { ...f, fee: newFee } : f)));
+  const loadFees = async () => {
+    try {
+      const res = await fetch('/api/delivery-fees');
+      const data = await res.json();
+      setFees(data);
+    } catch (e) {
+      console.error('Error loading delivery fees:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredFees = fees.filter((f) => f.governorate.includes(searchGov));
+  useEffect(() => {
+    loadFees();
+  }, []);
+
+  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>جاري تحميل أسعار الشحن من قاعدة البيانات...</div>;
 
   return (
     <div>
-      <h1 className="admin-page-title">إدارة أسعار الشحن للمحافظات 🚚</h1>
-      <p style={{ color: 'var(--color-text-light)', marginBottom: '24px', fontSize: '14px' }}>
-        يمكنكِ تعديل تكلفة الشحن لكل محافظة مباشرة وسيتأثر سعر الإجمالي فوراً عند إتمام العميلة للطلب.
-      </p>
+      <h1 className="admin-page-title">إدارة رسوم الشحن والتوصيل 🚚</h1>
 
-      <div style={{ marginBottom: '20px', maxWidth: '300px' }}>
-        <input
-          type="text"
-          placeholder="ابحثي عن محافظة..."
-          className="form-input"
-          value={searchGov}
-          onChange={(e) => setSearchGov(e.target.value)}
-        />
-      </div>
+      <div className="checkout-section">
+        <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
+          أسعار التوصيل لجميع محافظات جمهورية مصر العربية ({fees.length})
+        </h3>
 
-      <div className="admin-table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>المحافظة</th>
-              <th>سعر الشحن (ج.م)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFees.map((item) => (
-              <tr key={item.id}>
-                <td style={{ fontWeight: 600 }}>{item.governorate}</td>
-                <td>
-                  <input
-                    type="number"
-                    value={item.fee}
-                    onChange={(e) => handleFeeChange(item.id, Number(e.target.value))}
-                    style={{
-                      width: '100px',
-                      padding: '6px 12px',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      color: 'var(--color-primary)',
-                    }}
-                  />{' '}
-                  ج.م
-                </td>
+        <div className="table-responsive">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>المحافظة</th>
+                <th>تكلفة التوصيل (ج.م)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {fees.map((item, idx) => (
+                <tr key={item.id}>
+                  <td>{idx + 1}</td>
+                  <td style={{ fontWeight: 700 }}>{item.governorate}</td>
+                  <td style={{ fontWeight: 700, color: 'var(--color-primary-dark)' }}>{item.fee} ج.م</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

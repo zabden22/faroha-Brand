@@ -5,34 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum Role {
-  CUSTOMER
-  ADMIN
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PREPARING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-}
-
-model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String
-  role         Role     @default(CUSTOMER)
-  createdAt    DateTime @default(now())
-  orders       Order[]
-  carts        Cart[]
 }
 
 model Category {
@@ -45,7 +19,7 @@ model Category {
 model Product {
   id               Int              @id @default(autoincrement())
   name             String
-  description      String           @db.NText
+  description      String
   price            Float
   discountPrice    Float?
   categoryId       Int
@@ -59,7 +33,6 @@ model Product {
   createdAt        DateTime         @default(now())
   images           ProductImage[]
   variants         ProductVariant[]
-  cartItems        CartItem[]
   orderItems       OrderItem[]
 }
 
@@ -71,53 +44,31 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id        Int         @id @default(autoincrement())
-  productId Int
-  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  size      String
-  color     String
-  colorHex  String      @default("#000000")
-  stock     Int         @default(5)
-  cartItems CartItem[]
+  id         Int         @id @default(autoincrement())
+  productId  Int
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size       String
+  color      String
+  colorHex   String      @default("#000000")
+  stock      Int         @default(5)
   orderItems OrderItem[]
 }
 
-model Cart {
-  id        Int        @id @default(autoincrement())
-  userId    Int?
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime   @default(now())
-  items     CartItem[]
-}
-
-model CartItem {
-  id        Int             @id @default(autoincrement())
-  cartId    Int
-  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId Int
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variantId Int?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  quantity  Int             @default(1)
-}
-
 model Order {
-  id           Int         @id @default(autoincrement())
-  orderNumber  String      @unique
-  userId       Int?
-  user         User?       @relation(fields: [userId], references: [id])
-  totalAmount  Float
-  deliveryFee  Float
-  status       OrderStatus @default(PENDING)
-  paymentMethod String     @default("CASH_ON_DELIVERY")
-  customerName String
-  phone        String
-  governorate  String
-  city         String
-  address      String      @db.NText
-  notes        String?     @db.NText
-  createdAt    DateTime    @default(now())
-  items        OrderItem[]
+  id            Int         @id @default(autoincrement())
+  orderNumber   String      @unique
+  totalAmount   Float
+  deliveryFee   Float
+  status        String      @default("pending")
+  paymentMethod String      @default("الدفع عند الاستلام")
+  customerName  String
+  phone         String
+  governorate   String
+  city          String
+  address       String
+  notes         String?
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
 }
 
 model OrderItem {

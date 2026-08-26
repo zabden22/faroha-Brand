@@ -29,6 +29,8 @@ export default function CheckoutPage() {
   const [transferRef, setTransferRef] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [deliveryFeesList, setDeliveryFeesList] = useState<any[]>([]);
+
   useEffect(() => {
     try {
       const cart = JSON.parse(localStorage.getItem('faroha_cart') || '[]');
@@ -38,6 +40,14 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false);
     }
+
+    // Load delivery fees from database API
+    fetch('/api/delivery-fees')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setDeliveryFeesList(data);
+      })
+      .catch((e) => console.error(e));
   }, []);
 
   // Calculate Subtotal
@@ -47,13 +57,13 @@ export default function CheckoutPage() {
   }, 0);
 
   // Calculate Delivery Fee for selected governorate
-  const matchedFeeObj = INITIAL_DELIVERY_FEES.find(
+  const matchedFeeObj = deliveryFeesList.find(
     (item) => item.governorate.trim() === governorate.trim()
   );
   const deliveryFee = matchedFeeObj ? matchedFeeObj.fee : 60;
   const totalAmount = subtotal + deliveryFee;
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !phone || !governorate || !address) {
       alert('يرجى ملء جميع الحقول المطلوبة (الاسم، رقم الهاتف، المحافظة، والعنوان التفصيلي).');
@@ -70,15 +80,9 @@ export default function CheckoutPage() {
       paymentLabel = `تحويل إنستا باي (InstaPay) ${transferRef ? `(مرجع: ${transferRef})` : ''}`;
     }
 
-    const orderNumber = `FAR-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newOrder: Order = {
-      id: Date.now(),
-      orderNumber,
-      userId: null,
+    const payload = {
       totalAmount,
       deliveryFee,
-      status: 'pending',
       paymentMethod: paymentLabel,
       customerName,
       phone: altPhone ? `${phone} / ${altPhone}` : phone,
@@ -86,10 +90,7 @@ export default function CheckoutPage() {
       city: city || governorate,
       address,
       notes: notes || null,
-      createdAt: new Date().toISOString(),
-      items: cartItems.map((item, index) => ({
-        id: index + 1,
-        orderId: 0,
+      items: cartItems.map((item) => ({
         productId: item.productId,
         variantId: item.variantId || null,
         quantity: item.quantity,
@@ -99,20 +100,28 @@ export default function CheckoutPage() {
       })),
     };
 
-    // Save Order to localStorage orders list
     try {
-      const existingOrders = JSON.parse(localStorage.getItem('faroha_orders') || '[]');
-      localStorage.setItem('faroha_orders', JSON.stringify([newOrder, ...existingOrders]));
-      
-      // Save current order details for success page display
-      localStorage.setItem('faroha_latest_order', JSON.stringify(newOrder));
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      // Clear cart
-      localStorage.removeItem('faroha_cart');
-      window.dispatchEvent(new Event('cartUpdated'));
+      if (res.ok) {
+        const createdOrder = await res.json();
+        // Save current order details for success page display
+        localStorage.setItem('faroha_latest_order', JSON.stringify(createdOrder));
 
-      // Redirect to success page
-      router.push(`/checkout/success?orderNumber=${orderNumber}`);
+        // Clear cart
+        localStorage.removeItem('faroha_cart');
+        window.dispatchEvent(new Event('cartUpdated'));
+
+        // Redirect to success page
+        router.push(`/checkout/success?orderNumber=${createdOrder.orderNumber}`);
+      } else {
+        alert('حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.');
+        setIsSubmitting(false);
+      }
     } catch (err) {
       alert('حدث خطأ أثناء حفظ الطلب. يرجى المحاولة مرة أخرى.');
       setIsSubmitting(false);

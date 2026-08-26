@@ -19,17 +19,24 @@ function ShopContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSize, setSelectedSize] = useState<string | 'all'>('all');
 
-  const loadData = () => {
-    const cats = getCategories();
-    const prods = getProducts();
-    setCategories(cats);
-    setProducts(prods);
-  };
-
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [catsRes, prodsRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/products'),
+        ]);
+        const [cats, prods] = await Promise.all([
+          catsRes.json(),
+          prodsRes.json(),
+        ]);
+        if (Array.isArray(cats)) setCategories(cats);
+        if (Array.isArray(prods)) setProducts(prods);
+      } catch (e) {
+        console.error('Error loading shop data:', e);
+      }
+    };
     loadData();
-    window.addEventListener('storeUpdated', loadData);
-    return () => window.removeEventListener('storeUpdated', loadData);
   }, []);
 
   useEffect(() => {

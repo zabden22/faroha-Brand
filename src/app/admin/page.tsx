@@ -2,100 +2,147 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { INITIAL_ORDERS, INITIAL_PRODUCTS } from '@/lib/store';
-import { ORDER_STATUS_LABELS, OrderStatus } from '@/types';
+import { Order, Product, Category, OrderStatus, ORDER_STATUS_LABELS } from '@/types';
 
 export default function AdminDashboardPage() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboardData = async () => {
+    try {
+      const [ordersRes, prodsRes, catsRes] = await Promise.all([
+        fetch('/api/orders'),
+        fetch('/api/products'),
+        fetch('/api/categories'),
+      ]);
+      const [ordersData, prodsData, catsData] = await Promise.all([
+        ordersRes.json(),
+        prodsRes.json(),
+        catsRes.json(),
+      ]);
+      setOrders(ordersData);
+      setProducts(prodsData);
+      setCategories(catsData);
+    } catch (e) {
+      console.error('Error loading dashboard data:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('faroha_orders') || '[]');
-      setOrders(stored.length > 0 ? stored : INITIAL_ORDERS);
-    } catch (e) {
-      setOrders(INITIAL_ORDERS);
-    }
+    loadDashboardData();
   }, []);
 
-  const totalOrders = orders.length;
-  const pendingOrders = orders.filter((o) => o.status === 'pending').length;
-  const completedOrders = orders.filter((o) => o.status === 'delivered').length;
-  const totalProducts = INITIAL_PRODUCTS.length;
-  const totalSales = orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+  const totalSales = orders.reduce((sum, o) => sum + o.totalAmount + o.deliveryFee, 0);
+  const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
+  const completedOrdersCount = orders.filter((o) => o.status === 'delivered').length;
+
+  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>جاري تحميل إحصائيات الإدارة من قاعدة البيانات...</div>;
 
   return (
     <div>
-      <h1 className="admin-page-title">ملخص إحصائيات المتجر 📊</h1>
+      <h1 className="admin-page-title">نظرة عامة على الإدارة 📊</h1>
 
-      {/* Stats Cards */}
-      <div className="stats-grid">
+      {/* Stats Grid */}
+      <div className="stats-grid" style={{ marginBottom: '32px' }}>
         <div className="stat-card">
-          <div className="stat-card-icon orders">🛍️</div>
-          <span className="stat-card-label">إجمالي الطلبات</span>
-          <span className="stat-card-value">{totalOrders}</span>
+          <div className="stat-icon">💰</div>
+          <div className="stat-value">{totalSales} ج.م</div>
+          <div className="stat-label">إجمالي المبيعات</div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-card-icon pending">⏳</div>
-          <span className="stat-card-label">طلبات قيد الانتظار</span>
-          <span className="stat-card-value">{pendingOrders}</span>
+          <div className="stat-icon">📦</div>
+          <div className="stat-value">{orders.length}</div>
+          <div className="stat-label">إجمالي الطلبات</div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-card-icon completed">✅</div>
-          <span className="stat-card-label">طلبات مكتملة</span>
-          <span className="stat-card-value">{completedOrders}</span>
+          <div className="stat-icon">⏳</div>
+          <div className="stat-value">{pendingOrdersCount}</div>
+          <div className="stat-label">طلبات قيد الانتظار</div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-card-icon products">👗</div>
-          <span className="stat-card-label">عدد المنتجات</span>
-          <span className="stat-card-value">{totalProducts}</span>
+          <div className="stat-icon">👗</div>
+          <div className="stat-value">{products.length}</div>
+          <div className="stat-label">عدد المنتجات</div>
         </div>
       </div>
 
-      {/* Recent Orders Table */}
-      <div className="admin-table-container">
-        <div className="admin-table-header">
-          <h3 style={{ fontSize: '16px', fontWeight: 700 }}>أحدث الطلبات</h3>
-          <Link href="/admin/orders" className="btn btn-ghost btn-sm">
-            عرض الكل ←
-          </Link>
+      {/* Quick Actions & Overview */}
+      <div className="admin-grid-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+        <div className="checkout-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>أحدث الطلبات الواردة</h3>
+            <Link href="/admin/orders" style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 600 }}>
+              عرض الكل ←
+            </Link>
+          </div>
+
+          <div className="table-responsive">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>رقم الطلب</th>
+                  <th>العميل</th>
+                  <th>الإجمالي</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.slice(0, 5).map((o) => (
+                  <tr key={o.id}>
+                    <td style={{ fontWeight: 700 }}>{o.orderNumber}</td>
+                    <td>{o.customerName}</td>
+                    <td>{o.totalAmount + o.deliveryFee} ج.م</td>
+                    <td>
+                      <span className={`status-badge status-${o.status}`}>
+                        {ORDER_STATUS_LABELS[o.status as OrderStatus] || o.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>رقم الطلب</th>
-              <th>العميلة</th>
-              <th>الهاتف</th>
-              <th>المحافظة</th>
-              <th>الإجمالي</th>
-              <th>الحالة</th>
-              <th>التاريخ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.slice(0, 5).map((order) => (
-              <tr key={order.id}>
-                <td style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{order.orderNumber}</td>
-                <td>{order.customerName}</td>
-                <td>{order.phone}</td>
-                <td>{order.governorate}</td>
-                <td style={{ fontWeight: 600 }}>{order.totalAmount} ج.م</td>
-                <td>
-                  <span className={`status-badge ${order.status}`}>
-                    <span className="status-dot" />
-                    {ORDER_STATUS_LABELS[order.status as OrderStatus] || order.status}
+        <div className="checkout-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>أقسام المتجر المتاحة ({categories.length})</h3>
+            <Link href="/admin/categories" style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 600 }}>
+              إدارة الأقسام ←
+            </Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {categories.map((cat) => {
+              const productCount = products.filter((p) => p.categoryId === cat.id).length;
+              return (
+                <div
+                  key={cat.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: 'var(--color-bg-alt)',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <span style={{ fontWeight: 700 }}>{cat.name}</span>
+                  <span style={{ fontSize: '12px', background: 'white', padding: '4px 10px', borderRadius: '12px', color: 'var(--color-text-light)' }}>
+                    {productCount} منتجات
                   </span>
-                </td>
-                <td style={{ color: 'var(--color-text-light)', fontSize: '12px' }}>
-                  {new Date(order.createdAt).toLocaleDateString('ar-EG')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
