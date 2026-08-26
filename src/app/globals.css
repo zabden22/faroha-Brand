@@ -18,9 +18,10 @@
   --color-secondary-light: #E8D5C8;
 
   /* Backgrounds */
-  --color-bg: #FDFBF9;
-  --color-bg-alt: #F5F0EB;
+  --color-bg: #FAF6F2;
+  --color-bg-alt: #F2EBE3;
   --color-bg-card: #FFFFFF;
+  --color-bg-warm: #EDE4DA;
 
   /* Text */
   --color-text: #3D3029;
@@ -107,6 +108,10 @@ body {
   line-height: 1.7;
   color: var(--color-text);
   background-color: var(--color-bg);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(196, 169, 154, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(155, 123, 107, 0.06) 0%, transparent 55%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -292,10 +297,11 @@ ul, ol {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(253, 251, 249, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-block-end: 1px solid var(--color-border-light);
+  background: rgba(250, 246, 242, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-block-end: 1px solid rgba(196, 169, 154, 0.25);
+  box-shadow: 0 2px 20px rgba(155, 123, 107, 0.08);
   height: var(--navbar-height);
   display: flex;
   align-items: center;
@@ -316,10 +322,29 @@ ul, ol {
   font-weight: 700;
   color: var(--color-primary);
   letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.navbar-logo:hover {
+  background: rgba(155, 123, 107, 0.07);
+  transform: scale(1.02);
 }
 
 .navbar-logo span {
   color: var(--color-primary-dark);
+}
+
+.navbar-logo img {
+  filter: drop-shadow(0 2px 6px rgba(155, 123, 107, 0.2));
+  transition: filter var(--transition-base);
+}
+
+.navbar-logo:hover img {
+  filter: drop-shadow(0 4px 12px rgba(155, 123, 107, 0.35));
 }
 
 .navbar-links {

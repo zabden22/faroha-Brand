@@ -45,13 +45,18 @@ export default function Navbar() {
       <header className="navbar">
         <div className="navbar-inner">
           {/* Brand Logo */}
-          <Link href="/" className="navbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+          <Link href="/" className="navbar-logo">
             <Image
               src="/images/logo.png"
               alt="FarOha Brand"
-              width={150}
-              height={50}
-              style={{ objectFit: 'contain', height: '44px', width: 'auto', borderRadius: '4px' }}
+              width={180}
+              height={60}
+              style={{
+                objectFit: 'contain',
+                height: '50px',
+                width: 'auto',
+                borderRadius: '6px',
+              }}
               priority
             />
           </Link>
