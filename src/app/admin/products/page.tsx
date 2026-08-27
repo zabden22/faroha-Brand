@@ -1469,9 +1469,15 @@ export default function AdminProductsPage() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ flex: 1, justifyContent: 'center' }}
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    opacity: isSubmitting ? 0.7 : 1,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  }}
                 >
-                  حفظ التعديلات
+                  {isSubmitting ? 'جاري حفظ التعديلات... ⏳' : 'حفظ التعديلات ✨'}
                 </button>
                 <button
                   type="button"
