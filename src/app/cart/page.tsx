@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadCart = () => {
@@ -17,6 +18,7 @@ export default function CartPage() {
       } catch (e) {
         setCartItems([]);
       }
+      setIsLoaded(true);
     };
 
     loadCart();
@@ -53,7 +55,11 @@ export default function CartPage() {
             سلة التسوق 🛒
           </h1>
 
-          {cartItems.length > 0 ? (
+          {!isLoaded ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div className="loading-spinner" />
+            </div>
+          ) : cartItems.length > 0 ? (
             <div className="cart-grid">
               {/* Cart Items List */}
               <div className="cart-items">

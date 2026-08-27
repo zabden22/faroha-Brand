@@ -157,6 +157,48 @@ ul, ol {
   padding-block: var(--space-3xl);
 }
 
+/* Elegant decorative accent for white/light sections */
+.section:not(.bg-secondary) {
+  position: relative;
+}
+
+.section:not(.bg-secondary)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-primary-light), var(--color-primary), var(--color-primary-light), transparent);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+/* Subtle background pattern for non-colored sections */
+.section:not(.bg-secondary)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 30%, rgba(196, 169, 154, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 85% 70%, rgba(155, 123, 107, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.section:not(.bg-secondary) > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Elegant separator between sections */
+.bg-secondary {
+  position: relative;
+  border-block-start: 1px solid rgba(196, 169, 154, 0.15);
+  border-block-end: 1px solid rgba(196, 169, 154, 0.15);
+}
+
 .section-title {
   font-size: var(--font-size-2xl);
   font-weight: 700;
@@ -1991,10 +2033,10 @@ ul, ol {
 
 @media (max-width: 768px) {
   :root {
-    --font-size-4xl: 2rem;
-    --font-size-3xl: 1.75rem;
-    --font-size-2xl: 1.5rem;
-    --navbar-height: 64px;
+    --font-size-4xl: 1.85rem;
+    --font-size-3xl: 1.6rem;
+    --font-size-2xl: 1.35rem;
+    --navbar-height: 60px;
   }
 
   .navbar-links {
@@ -2005,32 +2047,161 @@ ul, ol {
     display: flex;
   }
 
+  /* --- Mobile Navbar: Logo centered, actions right, hamburger left --- */
+  .navbar-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .navbar-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+  }
+
+  .navbar-logo img {
+    height: 40px !important;
+  }
+
+  /* --- Hero mobile --- */
   .hero {
-    min-height: 50vh;
+    min-height: 55vh;
+  }
+
+  .hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(253, 251, 249, 0.35) 0%,
+      rgba(253, 251, 249, 0.75) 45%,
+      rgba(253, 251, 249, 0.95) 100%
+    ) !important;
   }
 
   .hero-content {
     padding-block: var(--space-xl);
+    max-width: 100%;
+    text-align: center;
   }
 
+  .hero-title {
+    font-size: 1.65rem;
+    line-height: 1.35;
+    margin-block-end: var(--space-sm);
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-block-end: var(--space-lg);
+    opacity: 0.85;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+    padding: 13px 24px;
+    font-size: 0.95rem;
+  }
+
+  /* --- Categories mobile --- */
   .categories-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
   }
 
   .categories-grid > *:last-child {
     grid-column: span 2;
   }
 
+  .category-card {
+    aspect-ratio: 4/5;
+    border-radius: var(--radius-md);
+  }
+
+  .category-card-name {
+    font-size: var(--font-size-sm);
+  }
+
+  /* --- Products mobile --- */
   .products-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-sm);
   }
 
+  .product-card-body {
+    padding: var(--space-sm);
+  }
+
+  .product-card-name {
+    font-size: var(--font-size-sm);
+    -webkit-line-clamp: 1;
+  }
+
+  .product-card-price .current {
+    font-size: var(--font-size-base);
+  }
+
+  .product-card-price .original {
+    font-size: var(--font-size-xs);
+  }
+
+  .product-card-footer {
+    padding: 0 var(--space-sm) var(--space-sm);
+  }
+
+  .product-card-footer .btn {
+    font-size: var(--font-size-sm);
+    padding: 8px 12px;
+  }
+
+  /* --- Section Titles mobile --- */
+  .section-title {
+    font-size: 1.25rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.85rem;
+    margin-block-end: var(--space-md);
+  }
+
+  /* --- Sections spacing --- */
+  .section {
+    padding-block: var(--space-xl);
+  }
+
+  /* --- Size Guide Section mobile --- */
+  .section.bg-secondary.text-center h3 {
+    font-size: 1.1rem !important;
+  }
+
+  .section.bg-secondary.text-center p {
+    font-size: 0.82rem !important;
+    line-height: 1.7;
+    padding-inline: var(--space-sm);
+  }
+
+  .section.bg-secondary.text-center .btn {
+    font-size: 0.88rem;
+    padding: 10px 22px;
+  }
+
+  /* --- Footer --- */
   .footer-grid {
     grid-template-columns: 1fr;
     gap: var(--space-xl);
   }
 
+  /* --- Admin --- */
   .admin-layout {
     grid-template-columns: 1fr;
     gap: var(--space-md);
@@ -2084,33 +2255,46 @@ ul, ol {
     grid-template-columns: 1fr;
   }
 
-  .section {
-    padding-block: var(--space-xl);
-  }
-
   .product-actions {
     flex-direction: column;
   }
 
-  .hero-actions {
-    flex-direction: column;
-    gap: var(--space-sm);
+  /* --- Size Guide Modal mobile --- */
+  .modal {
+    padding: var(--space-md);
+    max-height: 85vh;
+    border-radius: var(--radius-md);
+    margin: var(--space-sm);
   }
 
-  .hero-actions .btn {
-    width: 100%;
-    text-align: center;
+  .modal-title {
+    font-size: var(--font-size-base);
+  }
+
+  .modal .admin-table th,
+  .modal .admin-table td {
+    padding: var(--space-sm);
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 480px) {
   :root {
-    --font-size-4xl: 1.75rem;
-    --font-size-3xl: 1.5rem;
+    --font-size-4xl: 1.55rem;
+    --font-size-3xl: 1.35rem;
   }
 
   .container {
-    padding-inline: var(--space-md);
+    padding-inline: 14px;
+  }
+
+  .hero {
+    min-height: 50vh;
+  }
+
+  .hero-title {
+    font-size: 1.45rem;
   }
 
   .cart-item {
@@ -2125,6 +2309,11 @@ ul, ol {
   .product-gallery-thumbs {
     overflow-x: auto;
     padding-block-end: var(--space-sm);
+  }
+
+  .btn-lg {
+    padding: 12px 24px;
+    font-size: var(--font-size-base);
   }
 }
 
