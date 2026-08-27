@@ -92,3 +92,13 @@ model DeliveryFee {
   governorate String @unique
   fee         Float
 }
+
+model SiteVisit {
+  id        Int      @id @default(autoincrement())
+  visitorId String?
+  path      String?  @default("/")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorId])
+}

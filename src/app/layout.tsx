@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import VisitorTracker from "@/components/VisitorTracker";
 
 export const metadata: Metadata = {
   title: "FarOha_Brand | الأناقة في كل التفاصيل",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body>
+        <VisitorTracker />
         {children}
       </body>
     </html>
