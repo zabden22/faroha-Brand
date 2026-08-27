@@ -13,9 +13,9 @@ export default function AdminDashboardPage() {
   const loadDashboardData = async () => {
     try {
       const [ordersRes, prodsRes, catsRes] = await Promise.all([
-        fetch('/api/orders'),
-        fetch('/api/products'),
-        fetch('/api/categories'),
+        fetch('/api/orders', { cache: 'no-store' }),
+        fetch('/api/products', { cache: 'no-store' }),
+        fetch('/api/categories', { cache: 'no-store' }),
       ]);
       const [ordersData, prodsData, catsData] = await Promise.all([
         ordersRes.json(),

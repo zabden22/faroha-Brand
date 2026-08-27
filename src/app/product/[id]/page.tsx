@@ -15,7 +15,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    fetch('/api/products')
+    fetch('/api/products', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setProducts(data);

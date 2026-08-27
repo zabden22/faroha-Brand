@@ -41,7 +41,7 @@ export default function CheckoutPage() {
     }
 
     // Load delivery fees from database API
-    fetch('/api/delivery-fees')
+    fetch('/api/delivery-fees', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setDeliveryFeesList(data);

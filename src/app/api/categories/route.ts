@@ -10,7 +10,9 @@ export async function GET() {
       include: { _count: { select: { products: true } } },
       orderBy: { id: 'asc' },
     });
-    return NextResponse.json(categories);
+    return NextResponse.json(categories, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' },
+    });
   } catch (error) {
     console.error('Error fetching categories:', error);
     return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });

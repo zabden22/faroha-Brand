@@ -9,7 +9,9 @@ export async function GET() {
     const fees = await prisma.deliveryFee.findMany({
       orderBy: { governorate: 'asc' },
     });
-    return NextResponse.json(fees);
+    return NextResponse.json(fees, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' },
+    });
   } catch (error) {
     console.error('Error fetching delivery fees:', error);
     return NextResponse.json({ error: 'Failed to fetch delivery fees' }, { status: 500 });

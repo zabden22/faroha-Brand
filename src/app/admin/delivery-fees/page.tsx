@@ -9,7 +9,7 @@ export default function AdminDeliveryFeesPage() {
 
   const loadFees = async () => {
     try {
-      const res = await fetch('/api/delivery-fees');
+      const res = await fetch('/api/delivery-fees', { cache: 'no-store' });
       const data = await res.json();
       setFees(data);
     } catch (e) {

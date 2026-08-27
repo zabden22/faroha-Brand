@@ -10,7 +10,7 @@ export default function AdminOrdersPage() {
 
   const loadOrders = async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders', { cache: 'no-store' });
       const data = await res.json();
       setOrders(data);
     } catch (e) {

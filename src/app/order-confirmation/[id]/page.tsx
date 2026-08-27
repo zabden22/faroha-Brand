@@ -17,7 +17,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
     const loadOrder = async () => {
       try {
         // 1) Try from database API
-        const res = await fetch('/api/orders');
+        const res = await fetch('/api/orders', { cache: 'no-store' });
         if (res.ok) {
           const orders = await res.json();
           const found = orders.find((o: any) => o.orderNumber === orderNumber);
