@@ -19,6 +19,7 @@ export default function ProductDetailPage({
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showVideoMain, setShowVideoMain] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -231,144 +232,190 @@ export default function ProductDetailPage({
           </div>
 
           <div className="product-detail-grid">
-            {/* Multi-Image Gallery */}
+            {/* Multi-Image & Video Gallery */}
             <div className="product-gallery">
               <div
                 className="product-gallery-main"
-                style={{ position: 'relative', overflow: 'hidden' }}
+                style={{ position: 'relative', overflow: 'hidden', minHeight: '400px', background: '#f5efe9' }}
               >
-                <Image
-                  src={currentImage}
-                  alt={product.name}
-                  width={600}
-                  height={800}
-                  style={{
-                    objectFit: 'cover',
-                    width: '100%',
-                    height: '100%',
-                    transition: 'opacity 0.2s ease',
-                  }}
-                  priority
-                />
-
-                {/* Multiple Images Navigation Arrows */}
-                {imagesList.length > 1 && (
+                {showVideoMain && product.videoUrl ? (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#000', padding: '8px', minHeight: '450px' }}>
+                    {renderVideoPlayer(product.videoUrl)}
+                    <button
+                      onClick={() => setShowVideoMain(false)}
+                      className="btn btn-outline btn-sm"
+                      style={{ marginTop: '12px', background: 'rgba(255,255,255,0.9)', color: '#222' }}
+                    >
+                      ← العودة لصور المنتج 📷
+                    </button>
+                  </div>
+                ) : (
                   <>
-                    <button
-                      onClick={handlePrevImage}
-                      title="الصورة السابقة"
+                    <Image
+                      src={currentImage}
+                      alt={product.name}
+                      width={600}
+                      height={800}
                       style={{
-                        position: 'absolute',
-                        top: '50%',
-                        right: '12px',
-                        transform: 'translateY(-50%)',
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'rgba(255, 255, 255, 0.85)',
-                        color: 'var(--color-primary-dark)',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '20px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        zIndex: 2,
-                        transition: 'all 0.2s ease',
+                        objectFit: 'cover',
+                        width: '100%',
+                        height: '100%',
+                        transition: 'opacity 0.2s ease',
                       }}
-                    >
-                      ›
-                    </button>
-                    <button
-                      onClick={handleNextImage}
-                      title="الصورة التالية"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '12px',
-                        transform: 'translateY(-50%)',
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'rgba(255, 255, 255, 0.85)',
-                        color: 'var(--color-primary-dark)',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '20px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        zIndex: 2,
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      ‹
-                    </button>
+                      priority
+                    />
 
-                    {/* Image Counter Badge */}
-                    <span
-                      style={{
-                        position: 'absolute',
-                        bottom: '12px',
-                        left: '12px',
-                        background: 'rgba(0, 0, 0, 0.65)',
-                        color: 'white',
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        zIndex: 2,
-                        backdropFilter: 'blur(4px)',
-                      }}
-                    >
-                      {currentImageIndex + 1} / {imagesList.length} 📷
-                    </span>
+                    {/* Multiple Images Navigation Arrows */}
+                    {imagesList.length > 1 && (
+                      <>
+                        <button
+                          onClick={handlePrevImage}
+                          title="الصورة السابقة"
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            right: '12px',
+                            transform: 'translateY(-50%)',
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.85)',
+                            color: 'var(--color-primary-dark)',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '20px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            zIndex: 2,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          ›
+                        </button>
+                        <button
+                          onClick={handleNextImage}
+                          title="الصورة التالية"
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '12px',
+                            transform: 'translateY(-50%)',
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.85)',
+                            color: 'var(--color-primary-dark)',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '20px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            zIndex: 2,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          ‹
+                        </button>
+
+                        {/* Image Counter Badge */}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: '12px',
+                            left: '12px',
+                            background: 'rgba(0, 0, 0, 0.65)',
+                            color: 'white',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            zIndex: 2,
+                            backdropFilter: 'blur(4px)',
+                          }}
+                        >
+                          {currentImageIndex + 1} / {imagesList.length} 📷
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
 
-              {/* Thumbnails row */}
-              {imagesList.length > 1 && (
-                <div
-                  className="product-gallery-thumbs"
-                  style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
-                >
-                  {imagesList.map((imgUrl, idx) => (
-                    <div
-                      key={idx}
-                      className={`product-gallery-thumb ${
-                        currentImageIndex === idx ? 'active' : ''
-                      }`}
-                      onClick={() => setCurrentImageIndex(idx)}
-                      style={{
-                        position: 'relative',
-                        width: '72px',
-                        height: '72px',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        border:
-                          currentImageIndex === idx
-                            ? '2px solid var(--color-primary)'
-                            : '2px solid transparent',
-                        opacity: currentImageIndex === idx ? 1 : 0.65,
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <Image
-                        src={imgUrl}
-                        alt={`صورة مصغرة ${idx + 1}`}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Thumbnails row (Images + Video thumbnail) */}
+              <div
+                className="product-gallery-thumbs"
+                style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}
+              >
+                {imagesList.map((imgUrl, idx) => (
+                  <div
+                    key={idx}
+                    className={`product-gallery-thumb ${
+                      !showVideoMain && currentImageIndex === idx ? 'active' : ''
+                    }`}
+                    onClick={() => {
+                      setShowVideoMain(false);
+                      setCurrentImageIndex(idx);
+                    }}
+                    style={{
+                      position: 'relative',
+                      width: '72px',
+                      height: '72px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border:
+                        !showVideoMain && currentImageIndex === idx
+                          ? '2px solid var(--color-primary)'
+                          : '2px solid transparent',
+                      opacity: !showVideoMain && currentImageIndex === idx ? 1 : 0.65,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <Image
+                      src={imgUrl}
+                      alt={`صورة مصغرة ${idx + 1}`}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                    />
+                  </div>
+                ))}
+
+                {/* Video thumbnail if available */}
+                {product.videoUrl && (
+                  <div
+                    className={`product-gallery-thumb ${showVideoMain ? 'active' : ''}`}
+                    onClick={() => setShowVideoMain(true)}
+                    style={{
+                      position: 'relative',
+                      width: '72px',
+                      height: '72px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #1B263B 0%, #3D3029 100%)',
+                      color: 'white',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      border: showVideoMain
+                        ? '2px solid var(--color-primary)'
+                        : '2px solid transparent',
+                      opacity: showVideoMain ? 1 : 0.75,
+                      transition: 'all 0.2s ease',
+                      gap: '2px',
+                    }}
+                  >
+                    <span style={{ fontSize: '20px' }}>🎬</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700 }}>فيديو</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Product Details & Actions */}

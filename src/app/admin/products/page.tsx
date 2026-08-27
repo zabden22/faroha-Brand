@@ -161,6 +161,39 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Direct video file upload handler
+  const handleVideoFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isEdit = false
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      alert('⚠️ تنبيه: حجم الفيديو كبير (أكثر من 50 ميجابايت). يُفضل اختيار فيديو قصير لسرعة التحميل.');
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      if (isEdit && editingProduct) {
+        setEditingProduct({ ...editingProduct, videoUrl: base64 });
+      } else {
+        setNewProduct((prev) => ({ ...prev, videoUrl: base64 }));
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const removeVideo = (isEdit = false) => {
+    if (isEdit && editingProduct) {
+      setEditingProduct({ ...editingProduct, videoUrl: null });
+    } else {
+      setNewProduct((prev) => ({ ...prev, videoUrl: '' }));
+    }
+  };
+
   const toggleColor = (colorName: string, isEdit = false, customHex?: string) => {
     if (isEdit && editingProduct) {
       const currentVariants = editingProduct.variants || [];
@@ -551,20 +584,103 @@ export default function AdminProductsPage() {
               </div>
             )}
 
-            {/* Video URL Input */}
+            {/* Direct Video File Upload & Preview */}
             <div className="form-group full-width">
               <label className="form-label">
-                رابط فيديو للمنتج 🎬 (اختياري)
+                فيديو للمنتج 🎬 (رفع مباشر من جهازك أو هاتفك)
               </label>
               <input
-                type="url"
+                type="file"
+                accept="video/*"
                 className="form-input"
-                placeholder="رابط مباشر لفيديو MP4 أو رابط من يوتيوب / تيك توك / ريلز"
-                value={newProduct.videoUrl}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, videoUrl: e.target.value })
-                }
+                onChange={(e) => handleVideoFileUpload(e, false)}
               />
+              <span
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--color-text-light)',
+                  marginTop: '4px',
+                  display: 'block',
+                }}
+              >
+                💡 يمكنكِ رفع فيديو مصور للمنتج من الكاميرا أو المعرض مباشرة (MP4, MOV, WebM).
+              </span>
+
+              {newProduct.videoUrl && (
+                <div
+                  style={{
+                    marginTop: '10px',
+                    padding: '12px',
+                    background: 'var(--color-bg-alt)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: 'var(--color-primary-dark)',
+                      }}
+                    >
+                      🎬 معاينة الفيديو المرفوع:
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => removeVideo(false)}
+                      style={{ padding: '4px 10px', fontSize: '12px' }}
+                    >
+                      ✕ إزالة الفيديو
+                    </button>
+                  </div>
+                  <video
+                    src={newProduct.videoUrl}
+                    controls
+                    playsInline
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '220px',
+                      borderRadius: '8px',
+                      background: '#000',
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Optional Link Input */}
+              <div style={{ marginTop: '10px' }}>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--color-text-light)',
+                  }}
+                >
+                  أو وضع رابط فيديو خارجي (YouTube / Reels):
+                </span>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="رابط مباشر لفيديو MP4 أو يوتيوب / تيك توك / ريلز"
+                  value={
+                    newProduct.videoUrl.startsWith('data:')
+                      ? ''
+                      : newProduct.videoUrl
+                  }
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, videoUrl: e.target.value })
+                  }
+                  style={{ marginTop: '4px' }}
+                />
+              </div>
             </div>
 
             <div className="form-group full-width">
@@ -1060,21 +1176,96 @@ export default function AdminProductsPage() {
                 </div>
               )}
 
-              {/* Edit Video URL */}
+              {/* Edit Video (Direct File Upload + Preview) */}
               <div className="form-group full-width">
-                <label className="form-label">رابط الفيديو 🎬</label>
+                <label className="form-label">
+                  فيديو للمنتج 🎬 (رفع مباشر من جهازك)
+                </label>
                 <input
-                  type="url"
+                  type="file"
+                  accept="video/*"
                   className="form-input"
-                  placeholder="رابط مباشر لفيديو MP4 أو يوتيوب / تيك توك / ريلز"
-                  value={editingProduct.videoUrl || ''}
-                  onChange={(e) =>
-                    setEditingProduct({
-                      ...editingProduct,
-                      videoUrl: e.target.value,
-                    })
-                  }
+                  onChange={(e) => handleVideoFileUpload(e, true)}
                 />
+
+                {editingProduct.videoUrl && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '10px',
+                      background: 'var(--color-bg-alt)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '8px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: 'var(--color-primary-dark)',
+                        }}
+                      >
+                        🎬 الفيديو الحالي:
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => removeVideo(true)}
+                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                      >
+                        ✕ إزالة الفيديو
+                      </button>
+                    </div>
+                    <video
+                      src={editingProduct.videoUrl}
+                      controls
+                      playsInline
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '180px',
+                        borderRadius: '6px',
+                        background: '#000',
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ marginTop: '8px' }}>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--color-text-light)',
+                    }}
+                  >
+                    أو رابط فيديو خارجي:
+                  </span>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="رابط مباشر لفيديو MP4 أو يوتيوب / تيك توك / ريلز"
+                    value={
+                      editingProduct.videoUrl &&
+                      editingProduct.videoUrl.startsWith('data:')
+                        ? ''
+                        : editingProduct.videoUrl || ''
+                    }
+                    onChange={(e) =>
+                      setEditingProduct({
+                        ...editingProduct,
+                        videoUrl: e.target.value,
+                      })
+                    }
+                    style={{ marginTop: '4px' }}
+                  />
+                </div>
               </div>
 
               <div className="form-group full-width">
