@@ -53,7 +53,10 @@ function ShopContent() {
     return products
       .filter((product) => {
         // Category filter
-        if (selectedCategory !== 'all' && product.categoryId !== Number(selectedCategory)) {
+        if (
+          selectedCategory !== 'all' &&
+          Number(product.categoryId) !== Number(selectedCategory)
+        ) {
           return false;
         }
         // Size filter
@@ -130,11 +133,11 @@ function ShopContent() {
                 جميع الأقسام ({products.length})
               </button>
               {categories.map((cat) => {
-                const count = products.filter((p) => p.categoryId === cat.id).length;
+                const count = products.filter((p) => Number(p.categoryId) === Number(cat.id)).length;
                 return (
                   <button
                     key={cat.id}
-                    className={`filter-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+                    className={`filter-btn ${Number(selectedCategory) === Number(cat.id) ? 'active' : ''}`}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
                     {cat.name} ({count})

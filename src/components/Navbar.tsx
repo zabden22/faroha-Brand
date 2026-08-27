@@ -10,6 +10,8 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+
   useEffect(() => {
     // Update cart count from localStorage
     const updateCount = () => {
@@ -25,16 +27,30 @@ export default function Navbar() {
     updateCount();
     window.addEventListener('storage', updateCount);
     window.addEventListener('cartUpdated', updateCount);
+
+    // Fetch dynamic categories
+    fetch('/api/categories', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setCategories(data);
+      })
+      .catch((e) => console.error('Error loading navbar categories:', e));
+
     return () => {
       window.removeEventListener('storage', updateCount);
       window.removeEventListener('cartUpdated', updateCount);
     };
   }, []);
 
+  const dynamicCatLinks = categories.map((cat) => ({
+    href: `/shop?category=${cat.id}`,
+    label: cat.name,
+  }));
+
   const navLinks = [
     { href: '/', label: 'الرئيسية' },
-    { href: '/shop', label: 'المتجر' },
-    { href: '/shop?category=esdals', label: 'إسدالات' },
+    { href: '/shop', label: 'المتجر 🌸' },
+    ...dynamicCatLinks,
     { href: '/about', label: 'من نحن' },
     { href: '/return-policy', label: 'سياسة الاستبدال' },
     { href: '/contact', label: 'تواصلي معنا' },

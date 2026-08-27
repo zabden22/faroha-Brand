@@ -67,6 +67,7 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingImages, setEditingImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Custom Colors
   const [customColors, setCustomColors] = useState<{ name: string; hex: string }[]>([]);
@@ -118,8 +119,52 @@ export default function AdminProductsPage() {
     loadData();
   }, []);
 
-  // Multi-image file upload handler
-  const handleMultiImageUpload = (
+  // Client-side image compression to prevent large payload errors
+  const compressImageFile = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = document.createElement('img');
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            resolve(dataUrl);
+          } else {
+            resolve(img.src);
+          }
+        };
+        img.onerror = () => resolve(event.target?.result as string);
+      };
+      reader.onerror = () => resolve('');
+    });
+  };
+
+  // Multi-image file upload handler with auto compression
+  const handleMultiImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     isEdit = false
   ) => {
@@ -127,26 +172,26 @@ export default function AdminProductsPage() {
     if (!files || files.length === 0) return;
 
     const fileList = Array.from(files);
-    fileList.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
+    for (const file of fileList) {
+      try {
+        const compressedBase64 = await compressImageFile(file);
+        if (!compressedBase64) continue;
+
         if (isEdit) {
-          setEditingImages((prev) => [...prev, base64]);
+          setEditingImages((prev) => [...prev, compressedBase64]);
         } else {
           setNewProductImages((prev) => {
-            // Remove the default placeholder if adding first real image
             const filtered = prev.filter(
               (img) => img !== '/images/category_dresses.jpg'
             );
-            return [...filtered, base64];
+            return [...filtered, compressedBase64];
           });
         }
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        console.error('Error processing image:', err);
+      }
+    }
 
-    // Reset input value so same files can be re-selected if needed
     e.target.value = '';
   };
 
@@ -169,8 +214,8 @@ export default function AdminProductsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 50 * 1024 * 1024) {
-      alert('⚠️ تنبيه: حجم الفيديو كبير (أكثر من 50 ميجابايت). يُفضل اختيار فيديو قصير لسرعة التحميل.');
+    if (file.size > 25 * 1024 * 1024) {
+      alert('⚠️ تنبيه: يُفضل اختيار فيديو بحجم أقل من 25 ميجابايت لضمان سرعة الحفظ والتحميل.');
     }
 
     const reader = new FileReader();
@@ -252,7 +297,12 @@ export default function AdminProductsPage() {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name || !newProduct.price) return;
+    if (!newProduct.name || !newProduct.price) {
+      alert('يرجى ملء اسم المنتج والسعر');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const variants = (
       selectedColors.length > 0 ? selectedColors : ['أسود']
@@ -288,7 +338,7 @@ export default function AdminProductsPage() {
           categoryId: categoryId,
           material: newProduct.material || null,
           fit: newProduct.fit || null,
-          videoUrl: newProduct.videoUrl.trim() || null,
+          videoUrl: newProduct.videoUrl ? String(newProduct.videoUrl).trim() : null,
           images: imagesToSave,
           variants,
         }),
@@ -311,16 +361,26 @@ export default function AdminProductsPage() {
         await loadData();
         alert('تمت إضافة المنتج بجميع صوره بنجاح في قاعدة البيانات! 🚀');
       } else {
-        alert('حدث خطأ أثناء الإضافة. تأكدي من صحة البيانات.');
+        const errData = await res.json().catch(() => null);
+        alert(
+          errData?.error
+            ? `تعذر الحفظ: ${errData.error}`
+            : 'حدث خطأ أثناء الإضافة. تأكدي من صحة البيانات وحجم الصور/الفيديو.'
+        );
       }
-    } catch (e) {
-      alert('حدث خطأ أثناء الاتصال بقاعدة البيانات');
+    } catch (e: any) {
+      console.error(e);
+      alert('حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEditProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+
+    setIsSubmitting(true);
 
     const imagesToSave =
       editingImages.length > 0
@@ -339,7 +399,9 @@ export default function AdminProductsPage() {
           categoryId: editingProduct.categoryId,
           material: editingProduct.material,
           fit: editingProduct.fit,
-          videoUrl: editingProduct.videoUrl || null,
+          videoUrl: editingProduct.videoUrl
+            ? String(editingProduct.videoUrl).trim()
+            : null,
           variants: editingProduct.variants?.map((v) => ({
             size: v.size,
             color: v.color,
@@ -355,10 +417,18 @@ export default function AdminProductsPage() {
         await loadData();
         alert('تم حفظ التعديلات وتحديث الصور بنجاح! ✨');
       } else {
-        alert('حدث خطأ أثناء التعديل.');
+        const errData = await res.json().catch(() => null);
+        alert(
+          errData?.error
+            ? `تعذر الحفظ: ${errData.error}`
+            : 'حدث خطأ أثناء التعديل.'
+        );
       }
-    } catch (e) {
+    } catch (e: any) {
+      console.error(e);
       alert('حدث خطأ أثناء الاتصال بقاعدة البيانات');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -825,9 +895,15 @@ export default function AdminProductsPage() {
               <button
                 type="submit"
                 className="btn btn-primary btn-lg"
-                style={{ width: '100%', justifyContent: 'center' }}
+                disabled={isSubmitting}
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  opacity: isSubmitting ? 0.7 : 1,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                }}
               >
-                حفظ المنتج في قاعدة البيانات 🚀
+                {isSubmitting ? 'جاري حفظ ومعالجة المنتج... ⏳' : 'حفظ المنتج في قاعدة البيانات 🚀'}
               </button>
             </div>
           </div>
