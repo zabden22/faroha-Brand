@@ -6,10 +6,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await request.json();
+    const productId = Number(id);
 
     // Update basic product fields
     const product = await prisma.product.update({
-      where: { id: Number(id) },
+      where: { id: productId },
       data: {
         name: body.name,
         description: body.description,
@@ -20,36 +21,46 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         fit: body.fit,
         isNew: body.isNew,
         isFeatured: body.isFeatured,
+        videoUrl: body.videoUrl !== undefined ? body.videoUrl : undefined,
       },
     });
 
-    // If variants are provided, replace them
-    if (body.variants) {
-      await prisma.productVariant.deleteMany({ where: { productId: Number(id) } });
-      await prisma.productVariant.createMany({
-        data: body.variants.map((v: any) => ({
-          productId: Number(id),
-          size: v.size || 'L',
-          color: v.color,
-          colorHex: v.colorHex || '#222222',
-          stock: v.stock || 10,
-        })),
+    // If variants are provided, replace them safely
+    if (body.variants && Array.isArray(body.variants)) {
+      // First, unlink any orderItems from variants of this product so foreign key doesn't fail
+      await prisma.orderItem.updateMany({
+        where: { productId: productId },
+        data: { variantId: null },
       });
+      await prisma.productVariant.deleteMany({ where: { productId: productId } });
+      if (body.variants.length > 0) {
+        await prisma.productVariant.createMany({
+          data: body.variants.map((v: any) => ({
+            productId: productId,
+            size: v.size || 'L',
+            color: v.color,
+            colorHex: v.colorHex || '#222222',
+            stock: v.stock || 10,
+          })),
+        });
+      }
     }
 
     // If images are provided, replace them
-    if (body.images) {
-      await prisma.productImage.deleteMany({ where: { productId: Number(id) } });
-      await prisma.productImage.createMany({
-        data: body.images.map((img: any) => ({
-          productId: Number(id),
-          imageUrl: img.imageUrl || img,
-        })),
-      });
+    if (body.images && Array.isArray(body.images)) {
+      await prisma.productImage.deleteMany({ where: { productId: productId } });
+      if (body.images.length > 0) {
+        await prisma.productImage.createMany({
+          data: body.images.map((img: any) => ({
+            productId: productId,
+            imageUrl: img.imageUrl || img,
+          })),
+        });
+      }
     }
 
     const updated = await prisma.product.findUnique({
-      where: { id: Number(id) },
+      where: { id: productId },
       include: { category: true, images: true, variants: true },
     });
 
@@ -64,7 +75,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await prisma.product.delete({ where: { id: Number(id) } });
+    const productId = Number(id);
+
+    // Safely delete in order so foreign key constraints never fail
+    await prisma.$transaction([
+      prisma.orderItem.deleteMany({ where: { productId: productId } }),
+      prisma.productImage.deleteMany({ where: { productId: productId } }),
+      prisma.productVariant.deleteMany({ where: { productId: productId } }),
+      prisma.product.delete({ where: { id: productId } }),
+    ]);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting product:', error);

@@ -41,13 +41,14 @@ export async function POST(request: Request) {
         careInstructions: body.careInstructions || 'غسيل يدوي أو ماكينة بارد',
         isNew: body.isNew !== undefined ? body.isNew : true,
         isFeatured: body.isFeatured || false,
+        videoUrl: body.videoUrl || null,
         images: {
-          create: (body.images || [{ imageUrl: '/images/category_dresses.jpg' }]).map(
+          create: (body.images && body.images.length > 0 ? body.images : [{ imageUrl: '/images/category_dresses.jpg' }]).map(
             (img: any) => ({ imageUrl: img.imageUrl || img })
           ),
         },
         variants: {
-          create: (body.variants || [{ size: 'L', color: 'أسود', colorHex: '#222222', stock: 15 }]).map(
+          create: (body.variants && body.variants.length > 0 ? body.variants : [{ size: 'L', color: 'أسود', colorHex: '#222222', stock: 15 }]).map(
             (v: any) => ({
               size: v.size || 'L',
               color: v.color,

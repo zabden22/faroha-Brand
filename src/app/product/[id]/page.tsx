@@ -9,16 +9,20 @@ import ProductCard from '@/components/ProductCard';
 import SizeGuide from '@/components/SizeGuide';
 import { Product } from '@/types';
 
-export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const resolvedParams = use(params);
   const productId = Number(resolvedParams.id);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [selectedImage, setSelectedImage] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'care'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'care' | 'video'>('details');
 
   useEffect(() => {
     fetch('/api/products', { cache: 'no-store' })
@@ -32,22 +36,47 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
   const product = products.find((p) => p.id === productId);
 
-  // Sync image/variant once product is available
+  // Sync default variant and reset image index when product is loaded
   useEffect(() => {
     if (product) {
-      setSelectedImage(product.images?.[0]?.imageUrl || '/images/category_dresses.jpg');
+      setCurrentImageIndex(0);
       setSelectedVariant(product.variants?.[0] || null);
     }
   }, [product?.id]);
 
-  const similarProducts = products.filter((p) => p.id !== product?.id).slice(0, 3);
+  const imagesList =
+    product?.images && product.images.length > 0
+      ? product.images.map((img) => img.imageUrl)
+      : ['/images/category_dresses.jpg'];
+
+  const currentImage = imagesList[currentImageIndex] || imagesList[0];
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? imagesList.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === imagesList.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const similarProducts = products
+    .filter((p) => p.id !== product?.id)
+    .slice(0, 3);
 
   const handleAddToCart = (buyNow = false) => {
     if (!product) return;
     try {
-      const existingCart = JSON.parse(localStorage.getItem('faroha_cart') || '[]');
+      const existingCart = JSON.parse(
+        localStorage.getItem('faroha_cart') || '[]'
+      );
       const itemIndex = existingCart.findIndex(
-        (item: any) => item.productId === product.id && item.variantId === selectedVariant?.id
+        (item: any) =>
+          item.productId === product.id &&
+          item.variantId === selectedVariant?.id
       );
 
       if (itemIndex > -1) {
@@ -83,8 +112,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         <main className="product-detail">
           <div className="container">
             <div className="loading-page">
-              <div className="loading-spinner" style={{ width: 40, height: 40, borderWidth: 4 }} />
-              <p style={{ color: 'var(--color-text-light)', marginTop: 12 }}>جاري تحميل المنتج...</p>
+              <div
+                className="loading-spinner"
+                style={{ width: 40, height: 40, borderWidth: 4 }}
+              />
+              <p style={{ color: 'var(--color-text-light)', marginTop: 12 }}>
+                جاري تحميل المنتج...
+              </p>
             </div>
           </div>
         </main>
@@ -104,7 +138,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <div className="empty-state-icon">🔍</div>
               <h3 className="empty-state-title">المنتج غير موجود</h3>
               <p>يبدو أن هذا المنتج غير متوفر أو تم حذفه.</p>
-              <Link href="/shop" className="btn btn-primary btn-lg" style={{ marginTop: 24, display: 'inline-flex' }}>
+              <Link
+                href="/shop"
+                className="btn btn-primary btn-lg"
+                style={{ marginTop: 24, display: 'inline-flex' }}
+              >
                 العودة للمتجر
               </Link>
             </div>
@@ -114,6 +152,68 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       </>
     );
   }
+
+  // Helper to render video player or iframe
+  const renderVideoPlayer = (url: string) => {
+    if (!url) return null;
+    const isDirectVideo =
+      url.endsWith('.mp4') ||
+      url.endsWith('.webm') ||
+      url.endsWith('.mov') ||
+      url.includes('blob:') ||
+      url.includes('data:video');
+
+    if (isDirectVideo) {
+      return (
+        <video
+          src={url}
+          controls
+          playsInline
+          style={{
+            width: '100%',
+            maxHeight: '450px',
+            borderRadius: '12px',
+            background: '#000',
+          }}
+        />
+      );
+    }
+
+    // Embed for YouTube / other video links
+    let embedUrl = url;
+    if (url.includes('youtube.com/watch?v=')) {
+      embedUrl = url.replace('watch?v=', 'embed/');
+    } else if (url.includes('youtu.be/')) {
+      embedUrl = url.replace('youtu.be/', 'youtube.com/embed/');
+    }
+
+    return (
+      <div
+        style={{
+          position: 'relative',
+          paddingBottom: '56.25%',
+          height: 0,
+          overflow: 'hidden',
+          borderRadius: '12px',
+        }}
+      >
+        <iframe
+          src={embedUrl}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '12px',
+          }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  };
 
   return (
     <>
@@ -131,28 +231,140 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div className="product-detail-grid">
-            {/* Image Gallery */}
+            {/* Multi-Image Gallery */}
             <div className="product-gallery">
-              <div className="product-gallery-main">
+              <div
+                className="product-gallery-main"
+                style={{ position: 'relative', overflow: 'hidden' }}
+              >
                 <Image
-                  src={selectedImage || '/images/category_dresses.jpg'}
+                  src={currentImage}
                   alt={product.name}
                   width={600}
                   height={800}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                  style={{
+                    objectFit: 'cover',
+                    width: '100%',
+                    height: '100%',
+                    transition: 'opacity 0.2s ease',
+                  }}
                   priority
                 />
+
+                {/* Multiple Images Navigation Arrows */}
+                {imagesList.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevImage}
+                      title="الصورة السابقة"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        right: '12px',
+                        transform: 'translateY(-50%)',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.85)',
+                        color: 'var(--color-primary-dark)',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 2,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      ›
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      title="الصورة التالية"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '12px',
+                        transform: 'translateY(-50%)',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.85)',
+                        color: 'var(--color-primary-dark)',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 2,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      ‹
+                    </button>
+
+                    {/* Image Counter Badge */}
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        left: '12px',
+                        background: 'rgba(0, 0, 0, 0.65)',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        zIndex: 2,
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      {currentImageIndex + 1} / {imagesList.length} 📷
+                    </span>
+                  </>
+                )}
               </div>
 
-              {product.images && product.images.length > 1 && (
-                <div className="product-gallery-thumbs">
-                  {product.images.map((img) => (
+              {/* Thumbnails row */}
+              {imagesList.length > 1 && (
+                <div
+                  className="product-gallery-thumbs"
+                  style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
+                >
+                  {imagesList.map((imgUrl, idx) => (
                     <div
-                      key={img.id}
-                      className={`product-gallery-thumb ${selectedImage === img.imageUrl ? 'active' : ''}`}
-                      onClick={() => setSelectedImage(img.imageUrl)}
+                      key={idx}
+                      className={`product-gallery-thumb ${
+                        currentImageIndex === idx ? 'active' : ''
+                      }`}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      style={{
+                        position: 'relative',
+                        width: '72px',
+                        height: '72px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border:
+                          currentImageIndex === idx
+                            ? '2px solid var(--color-primary)'
+                            : '2px solid transparent',
+                        opacity: currentImageIndex === idx ? 1 : 0.65,
+                        transition: 'all 0.2s ease',
+                      }}
                     >
-                      <Image src={img.imageUrl} alt="" width={80} height={80} style={{ objectFit: 'cover' }} />
+                      <Image
+                        src={imgUrl}
+                        alt={`صورة مصغرة ${idx + 1}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                      />
                     </div>
                   ))}
                 </div>
@@ -182,9 +394,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               {/* Sizes Selection */}
               {product.variants && product.variants.length > 0 && (
                 <div className="product-options">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="product-option-label">اختاري المقاس:</span>
-                    <button className="size-guide-link" onClick={() => setSizeGuideOpen(true)}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span className="product-option-label">اختاري المقاس واللون:</span>
+                    <button
+                      className="size-guide-link"
+                      onClick={() => setSizeGuideOpen(true)}
+                    >
                       📐 دليل المقاسات
                     </button>
                   </div>
@@ -193,7 +414,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     {product.variants.map((variant) => (
                       <button
                         key={variant.id}
-                        className={`size-btn ${selectedVariant?.id === variant.id ? 'active' : ''}`}
+                        className={`size-btn ${
+                          selectedVariant?.id === variant.id ? 'active' : ''
+                        }`}
                         onClick={() => setSelectedVariant(variant)}
                       >
                         {variant.size} ({variant.color})
@@ -231,40 +454,86 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
               {/* CTA Buttons */}
               <div className="product-actions">
-                <button className="btn btn-primary btn-lg" onClick={() => handleAddToCart(false)}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={() => handleAddToCart(false)}
+                >
                   أضيفي للسلة 🛒
                 </button>
-                <button className="btn btn-outline btn-lg" onClick={() => handleAddToCart(true)}>
+                <button
+                  className="btn btn-outline btn-lg"
+                  onClick={() => handleAddToCart(true)}
+                >
                   اشتري الآن ⚡
                 </button>
               </div>
 
-              {/* Product Spec Tabs */}
+              {/* Product Spec Tabs & Video */}
               <div className="product-tabs">
                 <div className="product-tabs-nav">
                   <button
-                    className={`product-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
+                    className={`product-tab-btn ${
+                      activeTab === 'details' ? 'active' : ''
+                    }`}
                     onClick={() => setActiveTab('details')}
                   >
                     مواصفات القطعة
                   </button>
                   <button
-                    className={`product-tab-btn ${activeTab === 'care' ? 'active' : ''}`}
+                    className={`product-tab-btn ${
+                      activeTab === 'care' ? 'active' : ''
+                    }`}
                     onClick={() => setActiveTab('care')}
                   >
                     تعليمات العناية
                   </button>
+                  {product.videoUrl && (
+                    <button
+                      className={`product-tab-btn ${
+                        activeTab === 'video' ? 'active' : ''
+                      }`}
+                      onClick={() => setActiveTab('video')}
+                    >
+                      فيديو المنتج 🎬
+                    </button>
+                  )}
                 </div>
 
-                <div style={{ paddingBlock: '12px', fontSize: '14px', lineHeight: '1.8' }}>
-                  {activeTab === 'details' ? (
+                <div
+                  style={{
+                    paddingBlock: '12px',
+                    fontSize: '14px',
+                    lineHeight: '1.8',
+                  }}
+                >
+                  {activeTab === 'details' && (
                     <ul>
-                      <li>• <strong>نوع القماش:</strong> {product.material || 'قطن خفيف ومريح'}</li>
-                      <li>• <strong>القصّة:</strong> {product.fit || 'فضفاض ومريح (Oversized)'}</li>
-                      <li>• <strong>التطريز:</strong> خياطة دقيقة متينة تدوم مع الغسيل المتكرر</li>
+                      <li>
+                        • <strong>نوع القماش:</strong>{' '}
+                        {product.material || 'قطن خفيف ومريح'}
+                      </li>
+                      <li>
+                        • <strong>القصّة:</strong>{' '}
+                        {product.fit || 'فضفاض ومريح (Oversized)'}
+                      </li>
+                      <li>
+                        • <strong>التطريز والجودة:</strong> خياطة دقيقة متينة
+                        تدوم مع الغسيل المتكرر
+                      </li>
                     </ul>
-                  ) : (
-                    <p>{product.careInstructions || 'يُفضل الغسيل بماء بارد وتجنب استخدام المبيضات للحفاظ على رونق الألوان.'}</p>
+                  )}
+
+                  {activeTab === 'care' && (
+                    <p>
+                      {product.careInstructions ||
+                        'يُفضل الغسيل بماء بارد وتجنب استخدام المبيضات للحفاظ على رونق الألوان.'}
+                    </p>
+                  )}
+
+                  {activeTab === 'video' && product.videoUrl && (
+                    <div style={{ marginTop: '8px' }}>
+                      {renderVideoPlayer(product.videoUrl)}
+                    </div>
                   )}
                 </div>
               </div>
@@ -285,7 +554,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </main>
 
-      <SizeGuide isOpen={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
+      <SizeGuide
+        isOpen={sizeGuideOpen}
+        onClose={() => setSizeGuideOpen(false)}
+      />
       <Footer />
     </>
   );

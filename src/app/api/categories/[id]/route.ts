@@ -24,7 +24,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await prisma.category.delete({ where: { id: Number(id) } });
+    const catId = Number(id);
+
+    // Find all products in this category
+    const products = await prisma.product.findMany({
+      where: { categoryId: catId },
+      select: { id: true },
+    });
+    const productIds = products.map((p) => p.id);
+
+    if (productIds.length > 0) {
+      await prisma.orderItem.deleteMany({ where: { productId: { in: productIds } } });
+      await prisma.productImage.deleteMany({ where: { productId: { in: productIds } } });
+      await prisma.productVariant.deleteMany({ where: { productId: { in: productIds } } });
+      await prisma.product.deleteMany({ where: { id: { in: productIds } } });
+    }
+
+    await prisma.category.delete({ where: { id: catId } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting category:', error);

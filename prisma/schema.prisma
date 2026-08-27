@@ -31,6 +31,7 @@ model Product {
   careInstructions String?
   isNew            Boolean          @default(true)
   isFeatured       Boolean          @default(false)
+  videoUrl         String?          @db.Text
   createdAt        DateTime         @default(now())
   images           ProductImage[]
   variants         ProductVariant[]

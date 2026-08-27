@@ -39,6 +39,7 @@ export interface Product {
   careInstructions: string | null;
   isNew: boolean;
   isFeatured: boolean;
+  videoUrl?: string | null;
   createdAt: string;
   category?: Category;
   images?: ProductImage[];
