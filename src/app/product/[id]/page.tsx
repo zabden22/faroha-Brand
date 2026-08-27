@@ -13,6 +13,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const resolvedParams = use(params);
   const productId = Number(resolvedParams.id);
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [selectedImage, setSelectedImage] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'care'>('details');
 
   useEffect(() => {
     fetch('/api/products', { cache: 'no-store' })
@@ -20,20 +26,24 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       .then((data) => {
         if (Array.isArray(data)) setProducts(data);
       })
-      .catch((e) => console.error('Error fetching product:', e));
+      .catch((e) => console.error('Error fetching product:', e))
+      .finally(() => setIsLoaded(true));
   }, []);
 
-  const product = products.find((p) => p.id === productId) || products[0];
+  const product = products.find((p) => p.id === productId);
 
-  const [selectedImage, setSelectedImage] = useState(product?.images?.[0]?.imageUrl || '/images/category_dresses.jpg');
-  const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null);
-  const [quantity, setQuantity] = useState(1);
-  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'care'>('details');
+  // Sync image/variant once product is available
+  useEffect(() => {
+    if (product) {
+      setSelectedImage(product.images?.[0]?.imageUrl || '/images/category_dresses.jpg');
+      setSelectedVariant(product.variants?.[0] || null);
+    }
+  }, [product?.id]);
 
   const similarProducts = products.filter((p) => p.id !== product?.id).slice(0, 3);
 
   const handleAddToCart = (buyNow = false) => {
+    if (!product) return;
     try {
       const existingCart = JSON.parse(localStorage.getItem('faroha_cart') || '[]');
       const itemIndex = existingCart.findIndex(
@@ -65,6 +75,46 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  // ── Loading state ──
+  if (!isLoaded) {
+    return (
+      <>
+        <Navbar />
+        <main className="product-detail">
+          <div className="container">
+            <div className="loading-page">
+              <div className="loading-spinner" style={{ width: 40, height: 40, borderWidth: 4 }} />
+              <p style={{ color: 'var(--color-text-light)', marginTop: 12 }}>جاري تحميل المنتج...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // ── Product not found ──
+  if (!product) {
+    return (
+      <>
+        <Navbar />
+        <main className="product-detail">
+          <div className="container">
+            <div className="empty-state">
+              <div className="empty-state-icon">🔍</div>
+              <h3 className="empty-state-title">المنتج غير موجود</h3>
+              <p>يبدو أن هذا المنتج غير متوفر أو تم حذفه.</p>
+              <Link href="/shop" className="btn btn-primary btn-lg" style={{ marginTop: 24, display: 'inline-flex' }}>
+                العودة للمتجر
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -85,7 +135,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <div className="product-gallery">
               <div className="product-gallery-main">
                 <Image
-                  src={selectedImage}
+                  src={selectedImage || '/images/category_dresses.jpg'}
                   alt={product.name}
                   width={600}
                   height={800}
@@ -130,7 +180,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <p className="product-info-description">{product.description}</p>
 
               {/* Sizes Selection */}
-              {product.variants && (
+              {product.variants && product.variants.length > 0 && (
                 <div className="product-options">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span className="product-option-label">اختاري المقاس:</span>
@@ -202,7 +252,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     className={`product-tab-btn ${activeTab === 'care' ? 'active' : ''}`}
                     onClick={() => setActiveTab('care')}
                   >
-                    تعليمات العناية والتعليمات
+                    تعليمات العناية
                   </button>
                 </div>
 
@@ -222,14 +272,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* Similar Products */}
-          <div className="section" style={{ marginTop: '60px' }}>
-            <h2 className="section-title">قد يعجبكِ أيضاً</h2>
-            <div className="products-grid" style={{ marginTop: '24px' }}>
-              {similarProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+          {similarProducts.length > 0 && (
+            <div className="section" style={{ marginTop: '60px' }}>
+              <h2 className="section-title">قد يعجبكِ أيضاً</h2>
+              <div className="products-grid" style={{ marginTop: '24px' }}>
+                {similarProducts.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 
