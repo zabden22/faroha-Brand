@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use, useEffect } from 'react';
+import { useState, use, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
@@ -21,6 +21,8 @@ export default function ProductDetailPage({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showVideoMain, setShowVideoMain] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('L');
   const [quantity, setQuantity] = useState(1);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'care' | 'video'>('details');
@@ -37,13 +39,74 @@ export default function ProductDetailPage({
 
   const product = products.find((p) => p.id === productId);
 
-  // Sync default variant and reset image index when product is loaded
+  // Extract all unique available colors defined by the admin
+  const availableColors = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0) return [];
+    const colorMap = new Map<string, { color: string; colorHex: string }>();
+    product.variants.forEach((v) => {
+      if (v.color && v.color.trim()) {
+        const key = v.color.trim();
+        if (!colorMap.has(key)) {
+          colorMap.set(key, {
+            color: key,
+            colorHex: v.colorHex || '#888888',
+          });
+        }
+      }
+    });
+    return Array.from(colorMap.values());
+  }, [product]);
+
+  // Extract all unique available sizes defined by the admin
+  const availableSizes = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0) return [];
+    const sizeSet = new Set<string>();
+    product.variants.forEach((v) => {
+      if (v.size && v.size.trim()) sizeSet.add(v.size.trim());
+    });
+    return Array.from(sizeSet);
+  }, [product]);
+
+  // Sync default color, size and variant when product is loaded
   useEffect(() => {
     if (product) {
       setCurrentImageIndex(0);
-      setSelectedVariant(product.variants?.[0] || null);
+      const firstVar = product.variants?.[0];
+      if (firstVar) {
+        setSelectedVariant(firstVar);
+        setSelectedColor(firstVar.color || '');
+        setSelectedSize(firstVar.size || 'L');
+      } else {
+        setSelectedVariant(null);
+        setSelectedColor('');
+        setSelectedSize('L');
+      }
     }
   }, [product?.id]);
+
+  // Handler when user selects a color
+  const handleSelectColor = (colorName: string) => {
+    setSelectedColor(colorName);
+    const matched =
+      product?.variants?.find(
+        (v) => v.color === colorName && v.size === selectedSize
+      ) ||
+      product?.variants?.find((v) => v.color === colorName) ||
+      selectedVariant;
+    if (matched) setSelectedVariant(matched);
+  };
+
+  // Handler when user selects a size
+  const handleSelectSize = (sizeName: string) => {
+    setSelectedSize(sizeName);
+    const matched =
+      product?.variants?.find(
+        (v) => v.size === sizeName && v.color === selectedColor
+      ) ||
+      product?.variants?.find((v) => v.size === sizeName) ||
+      selectedVariant;
+    if (matched) setSelectedVariant(matched);
+  };
 
   const imagesList =
     product?.images && product.images.length > 0
@@ -71,13 +134,26 @@ export default function ProductDetailPage({
   const handleAddToCart = (buyNow = false) => {
     if (!product) return;
     try {
+      const activeColor = selectedColor || availableColors[0]?.color || 'افتراضي';
+      const activeSize = selectedSize || availableSizes[0] || 'L';
+
+      const variantData = selectedVariant || {
+        id: 0,
+        productId: product.id,
+        size: activeSize,
+        color: activeColor,
+        colorHex: availableColors.find((c) => c.color === activeColor)?.colorHex || '#888888',
+        stock: 10,
+      };
+
       const existingCart = JSON.parse(
         localStorage.getItem('faroha_cart') || '[]'
       );
       const itemIndex = existingCart.findIndex(
         (item: any) =>
           item.productId === product.id &&
-          item.variantId === selectedVariant?.id
+          item.variant?.color === activeColor &&
+          item.variant?.size === activeSize
       );
 
       if (itemIndex > -1) {
@@ -85,9 +161,9 @@ export default function ProductDetailPage({
       } else {
         existingCart.push({
           productId: product.id,
-          variantId: selectedVariant?.id || null,
+          variantId: variantData.id || null,
           product,
-          variant: selectedVariant,
+          variant: variantData,
           quantity,
         });
       }
@@ -98,7 +174,7 @@ export default function ProductDetailPage({
       if (buyNow) {
         window.location.href = '/checkout';
       } else {
-        alert(`تمت إضافة ${quantity} من "${product.name}" إلى السلة! 🛍️`);
+        alert(`تمت إضافة ${quantity} من "${product.name}" (اللون: ${activeColor}) إلى السلة! 🛍️`);
       }
     } catch (e) {
       console.error(e);
@@ -456,37 +532,176 @@ export default function ProductDetailPage({
 
               <p className="product-info-description">{product.description}</p>
 
-              {/* Sizes Selection */}
-              {product.variants && product.variants.length > 0 && (
-                <div className="product-options">
+              {/* 🎨 Luxury Color Selection (الألوان المتاحة المحددة من الأدمن) */}
+              {availableColors.length > 0 && (
+                <div className="product-options" style={{ marginBottom: '22px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <span className="product-option-label" style={{ marginBottom: 0, fontSize: '15px' }}>
+                      اللون المختار:{' '}
+                      <strong
+                        style={{
+                          color: 'var(--color-primary-dark)',
+                          fontWeight: 800,
+                          fontSize: '15px',
+                        }}
+                      >
+                        {selectedColor || availableColors[0]?.color}
+                      </strong>
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-light)' }}>
+                      (متوفر {availableColors.length} {availableColors.length === 1 ? 'لون' : 'ألوان'})
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {availableColors.map((c) => {
+                      const isSelected =
+                        selectedColor === c.color ||
+                        (!selectedColor && c.color === availableColors[0]?.color);
+                      const isLight =
+                        c.colorHex.toLowerCase() === '#ffffff' ||
+                        c.colorHex.toLowerCase() === '#fff' ||
+                        c.color === 'أبيض';
+
+                      return (
+                        <button
+                          key={c.color}
+                          type="button"
+                          onClick={() => handleSelectColor(c.color)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 16px',
+                            borderRadius: 'var(--radius-full)',
+                            border: isSelected
+                              ? '2px solid var(--color-primary)'
+                              : '1px solid var(--color-border)',
+                            background: isSelected ? 'var(--color-surface)' : 'white',
+                            color: isSelected
+                              ? 'var(--color-primary-dark)'
+                              : 'var(--color-text)',
+                            fontWeight: isSelected ? 700 : 500,
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            boxShadow: isSelected
+                              ? '0 3px 10px rgba(155, 123, 107, 0.25)'
+                              : '0 1px 3px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              backgroundColor: c.colorHex,
+                              border: isLight
+                                ? '1px solid #ccc'
+                                : '1px solid rgba(0,0,0,0.15)',
+                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)',
+                              display: 'inline-block',
+                            }}
+                          />
+                          <span>{c.color}</span>
+                          {isSelected && (
+                            <span
+                              style={{
+                                color: 'var(--color-primary)',
+                                fontSize: '14px',
+                                fontWeight: 800,
+                              }}
+                            >
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 📏 Sizes Selection (المقاسات) */}
+              {availableSizes.length > 0 && (
+                <div className="product-options" style={{ marginBottom: '22px' }}>
                   <div
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
+                      marginBottom: '10px',
                     }}
                   >
-                    <span className="product-option-label">اختاري المقاس واللون:</span>
+                    <span className="product-option-label" style={{ marginBottom: 0, fontSize: '15px' }}>
+                      المقاس:{' '}
+                      <strong
+                        style={{
+                          color: 'var(--color-primary-dark)',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {selectedSize || availableSizes[0]}
+                      </strong>
+                    </span>
                     <button
                       className="size-guide-link"
                       onClick={() => setSizeGuideOpen(true)}
+                      style={{
+                        fontSize: '13px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-primary)',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        fontWeight: 600,
+                      }}
                     >
                       📐 دليل المقاسات
                     </button>
                   </div>
 
-                  <div className="size-options">
-                    {product.variants.map((variant) => (
-                      <button
-                        key={variant.id}
-                        className={`size-btn ${
-                          selectedVariant?.id === variant.id ? 'active' : ''
-                        }`}
-                        onClick={() => setSelectedVariant(variant)}
-                      >
-                        {variant.size} ({variant.color})
-                      </button>
-                    ))}
+                  <div
+                    className="size-options"
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
+                  >
+                    {availableSizes.map((sz) => {
+                      const isSelected =
+                        selectedSize === sz ||
+                        (!selectedSize && sz === availableSizes[0]);
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          className={`size-btn ${isSelected ? 'active' : ''}`}
+                          onClick={() => handleSelectSize(sz)}
+                          style={{
+                            minWidth: '55px',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            border: isSelected
+                              ? '2px solid var(--color-primary)'
+                              : '1px solid var(--color-border)',
+                            background: isSelected ? 'var(--color-primary)' : 'white',
+                            color: isSelected ? 'white' : 'var(--color-text)',
+                            fontWeight: isSelected ? 700 : 500,
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {sz}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
