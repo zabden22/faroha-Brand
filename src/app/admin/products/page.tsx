@@ -60,6 +60,25 @@ const COLOR_OPTIONS = [
   { name: 'برتقالي هادئ', hex: '#E67E22' },
 ];
 
+export const SIZE_OPTIONS = [
+  'One Size (فري سايز)',
+  'L',
+  'XL',
+  '2XL',
+  '3XL',
+  '4XL',
+  '5XL',
+  'M',
+  'S',
+  '50',
+  '52',
+  '54',
+  '56',
+  '58',
+  '60',
+  '62',
+];
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -73,8 +92,12 @@ export default function AdminProductsPage() {
   const [customColors, setCustomColors] = useState<{ name: string; hex: string }[]>([]);
   const [newCustomColorName, setNewCustomColorName] = useState('');
   const [newCustomColorHex, setNewCustomColorHex] = useState('#E8A598');
-
   const allColorOptions = [...COLOR_OPTIONS, ...customColors];
+
+  // Custom Sizes
+  const [customSizes, setCustomSizes] = useState<string[]>([]);
+  const [newCustomSizeName, setNewCustomSizeName] = useState('');
+  const allSizeOptions = [...SIZE_OPTIONS, ...customSizes];
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -90,6 +113,7 @@ export default function AdminProductsPage() {
     '/images/category_dresses.jpg',
   ]);
   const [selectedColors, setSelectedColors] = useState<string[]>(['بيج', 'أسود']);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(['One Size (فري سايز)']);
 
   const loadData = async () => {
     try {
@@ -293,6 +317,59 @@ export default function AdminProductsPage() {
     setNewCustomColorName('');
   };
 
+  const toggleSize = (sizeName: string, isEdit = false) => {
+    if (isEdit && editingProduct) {
+      const currentVariants = editingProduct.variants || [];
+      const hasThisSize = currentVariants.some((v) => v.size === sizeName);
+      if (hasThisSize) {
+        const remaining = currentVariants.filter((v) => v.size !== sizeName);
+        if (remaining.length > 0) {
+          setEditingProduct({ ...editingProduct, variants: remaining });
+        } else {
+          alert('يجب الإبقاء على مقاس واحد على الأقل للمنتج.');
+        }
+      } else {
+        const colors = Array.from(
+          new Set(currentVariants.map((v) => v.color).filter(Boolean))
+        );
+        const colorsToAdd = colors.length > 0 ? colors : ['أسود'];
+        const newVars = colorsToAdd.map((col) => {
+          const colHex =
+            currentVariants.find((v) => v.color === col)?.colorHex || '#888888';
+          return {
+            id: 0,
+            productId: editingProduct.id,
+            size: sizeName,
+            color: col,
+            colorHex: colHex,
+            stock: 10,
+          };
+        });
+        setEditingProduct({
+          ...editingProduct,
+          variants: [...currentVariants, ...newVars],
+        });
+      }
+    } else {
+      setSelectedSizes((prev) =>
+        prev.includes(sizeName)
+          ? prev.filter((s) => s !== sizeName)
+          : [...prev, sizeName]
+      );
+    }
+  };
+
+  const handleAddCustomSize = (e: React.MouseEvent, isEdit = false) => {
+    e.preventDefault();
+    if (!newCustomSizeName.trim()) return;
+    const name = newCustomSizeName.trim();
+    if (!allSizeOptions.includes(name)) {
+      setCustomSizes((prev) => [...prev, name]);
+    }
+    toggleSize(name, isEdit);
+    setNewCustomSizeName('');
+  };
+
   const openEditModal = (p: Product) => {
     setEditingProduct(p);
     const existingImgs = p.images?.map((img) => img.imageUrl) || [
@@ -310,14 +387,24 @@ export default function AdminProductsPage() {
 
     setIsSubmitting(true);
 
-    const variants = (
-      selectedColors.length > 0 ? selectedColors : ['أسود']
-    ).map((colorName) => {
-      const colorObj = allColorOptions.find((c) => c.name === colorName) || {
-        name: colorName,
-        hex: '#888888',
-      };
-      return { size: 'L', color: colorObj.name, colorHex: colorObj.hex, stock: 10 };
+    const colorsToUse = selectedColors.length > 0 ? selectedColors : ['أسود'];
+    const sizesToUse =
+      selectedSizes.length > 0 ? selectedSizes : ['One Size (فري سايز)'];
+
+    const variants: any[] = [];
+    sizesToUse.forEach((sz) => {
+      colorsToUse.forEach((colorName) => {
+        const colorObj = allColorOptions.find((c) => c.name === colorName) || {
+          name: colorName,
+          hex: '#888888',
+        };
+        variants.push({
+          size: sz,
+          color: colorObj.name,
+          colorHex: colorObj.hex,
+          stock: 10,
+        });
+      });
     });
 
     const categoryId =
@@ -364,8 +451,9 @@ export default function AdminProductsPage() {
         });
         setNewProductImages(['/images/category_dresses.jpg']);
         setSelectedColors(['بيج', 'أسود']);
+        setSelectedSizes(['One Size (فري سايز)']);
         await loadData();
-        alert('تمت إضافة المنتج بجميع صوره بنجاح في قاعدة البيانات! 🚀');
+        alert('تمت إضافة المنتج بجميع مقاساته وألوانه بنجاح! 🚀');
       } else {
         const errData = await res.json().catch(() => null);
         alert(
@@ -756,6 +844,103 @@ export default function AdminProductsPage() {
                   }
                   style={{ marginTop: '4px' }}
                 />
+              </div>
+            </div>
+
+            {/* Sizes Selection (المقاسات المتاحة) */}
+            <div className="form-group full-width">
+              <label className="form-label">المقاسات المتاحة للمنتج 📏</label>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  marginTop: '6px',
+                  padding: '10px',
+                  background: 'var(--color-bg-alt)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                {allSizeOptions.map((sz) => {
+                  const isSelected = selectedSizes.includes(sz);
+                  return (
+                    <button
+                      type="button"
+                      key={sz}
+                      onClick={() => toggleSize(sz, false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        border: isSelected
+                          ? '2px solid var(--color-primary)'
+                          : '1px solid var(--color-border)',
+                        background: isSelected
+                          ? 'var(--color-surface)'
+                          : 'white',
+                        color: isSelected
+                          ? 'var(--color-primary-dark)'
+                          : 'var(--color-text)',
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        boxShadow: isSelected
+                          ? '0 2px 6px rgba(155,123,107,0.2)'
+                          : 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>{sz}</span>
+                      {isSelected && (
+                        <span
+                          style={{
+                            color: 'var(--color-primary)',
+                            fontWeight: 800,
+                          }}
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Size Input */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginTop: '10px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: '13px', color: 'var(--color-text-light)' }}>
+                  ✨ أضيفي مقاساً مخصصاً جديداً:
+                </span>
+                <input
+                  type="text"
+                  placeholder="مثال: مقاس خاص أو طول 155"
+                  className="form-input"
+                  style={{
+                    maxWidth: '200px',
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                  }}
+                  value={newCustomSizeName}
+                  onChange={(e) => setNewCustomSizeName(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={(e) => handleAddCustomSize(e, false)}
+                >
+                  + إضافة المقاس
+                </button>
               </div>
             </div>
 
@@ -1347,6 +1532,94 @@ export default function AdminProductsPage() {
                     }
                     style={{ marginTop: '4px' }}
                   />
+                </div>
+              </div>
+
+              {/* Edit Modal Sizes Selection */}
+              <div className="form-group full-width">
+                <label className="form-label">المقاسات المتاحة للمنتج 📏</label>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    marginTop: '6px',
+                    padding: '8px',
+                    background: 'var(--color-bg-alt)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  {allSizeOptions.map((sz) => {
+                    const isSelected = editingProduct.variants?.some(
+                      (v) => v.size === sz
+                    );
+                    return (
+                      <button
+                        type="button"
+                        key={sz}
+                        onClick={() => toggleSize(sz, true)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          border: isSelected
+                            ? '2px solid var(--color-primary)'
+                            : '1px solid var(--color-border)',
+                          background: isSelected
+                            ? 'var(--color-surface)'
+                            : 'white',
+                          color: isSelected
+                            ? 'var(--color-primary-dark)'
+                            : 'var(--color-text)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: isSelected ? 700 : 500,
+                          boxShadow: isSelected
+                            ? '0 2px 6px rgba(155,123,107,0.2)'
+                            : 'none',
+                        }}
+                      >
+                        <span>{sz}</span>
+                        {isSelected && (
+                          <span style={{ color: 'var(--color-primary)', fontWeight: 800 }}>✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Edit Modal Custom Size Input */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '8px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-light)' }}>
+                    ✨ أضيفي مقاساً مخصصاً:
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="اسم المقاس"
+                    className="form-input"
+                    style={{ maxWidth: '160px', padding: '4px 8px', fontSize: '12px' }}
+                    value={newCustomSizeName}
+                    onChange={(e) => setNewCustomSizeName(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                    onClick={(e) => handleAddCustomSize(e, true)}
+                  >
+                    + إضافة
+                  </button>
                 </div>
               </div>
 
