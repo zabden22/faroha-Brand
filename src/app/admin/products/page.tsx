@@ -5,16 +5,59 @@ import Image from 'next/image';
 import { Product, Category, ProductVariant } from '@/types';
 
 const COLOR_OPTIONS = [
-  { name: 'أسود', hex: '#222222' },
-  { name: 'بيج', hex: '#D4B9A7' },
-  { name: 'موف', hex: '#A3798A' },
-  { name: 'زيتي', hex: '#6B8E7B' },
-  { name: 'نبيذي', hex: '#6B1D2F' },
-  { name: 'بني', hex: '#5C4033' },
-  { name: 'كحلي', hex: '#1B263B' },
-  { name: 'أوف وايت', hex: '#F5F5DC' },
-  { name: 'وردي', hex: '#E8A598' },
-  { name: 'رمادي', hex: '#888888' },
+  // ── المحايدات والأساسيات ──
+  { name: 'أسود', hex: '#1A1A1A' },
+  { name: 'أبيض ناصع', hex: '#FFFFFF' },
+  { name: 'أوف وايت', hex: '#F5F2EB' },
+  { name: 'بيج فاتح', hex: '#E8D8C8' },
+  { name: 'بيج كلاسيك', hex: '#D4B9A7' },
+  { name: 'كافيه / لاتيه', hex: '#A67B5B' },
+  { name: 'بني شوكولاتة', hex: '#5C4033' },
+  { name: 'بني داكن', hex: '#3B2219' },
+  { name: 'رمادي فاتح', hex: '#D3D3D3' },
+  { name: 'رمادي كلاسيك', hex: '#888888' },
+  { name: 'رمادي فحم', hex: '#444444' },
+
+  // ── الوردي، البنك والكشمير ──
+  { name: 'بيبي بينك', hex: '#F8BBD0' },
+  { name: 'وردي / بينك', hex: '#E8A598' },
+  { name: 'كشمير هادئ', hex: '#DDA7A5' },
+  { name: 'كشمير غامق', hex: '#B07278' },
+  { name: 'روز جولد', hex: '#B76E79' },
+  { name: 'فوشيا', hex: '#D81B60' },
+
+  // ── الموف والبنفسجي ──
+  { name: 'لافندر', hex: '#C3B1E1' },
+  { name: 'موف كلاسيك', hex: '#A3798A' },
+  { name: 'بنفسجي باذنجاني', hex: '#5E2B58' },
+
+  // ── الأحمر والنبيذي ──
+  { name: 'نبيذي / بورجوندي', hex: '#6B1D2F' },
+  { name: 'عنابي داكن', hex: '#4A0E17' },
+  { name: 'أحمر ملكي', hex: '#C0392B' },
+  { name: 'طوبي / تيراكوتا', hex: '#C86446' },
+  { name: 'خوخي / بيتش', hex: '#FFCBA4' },
+
+  // ── الأزرق والكحلي ──
+  { name: 'بيبي بلو / سماوي', hex: '#A0C4E2' },
+  { name: 'أزرق بترولي / تيل', hex: '#005F73' },
+  { name: 'أزرق رويال', hex: '#2A52BE' },
+  { name: 'كحلي كلاسيك', hex: '#1B263B' },
+  { name: 'كحلي داكن', hex: '#0F172A' },
+
+  // ── الأخضر والزيتي ──
+  { name: 'مينت جرين / نعناعي', hex: '#A8E6CF' },
+  { name: 'بستاج / فستقي', hex: '#93C572' },
+  { name: 'زيتي فاتح', hex: '#8A9A5B' },
+  { name: 'زيتي كلاسيك', hex: '#6B8E7B' },
+  { name: 'أخضر زمردي', hex: '#1B6B4C' },
+  { name: 'زيتي داكن', hex: '#3B4A3F' },
+
+  // ── الأصفر والذهبي والبرتقالي ──
+  { name: 'أصفر باستيل', hex: '#FFF9A6' },
+  { name: 'مستردة / خردلي', hex: '#E1AD01' },
+  { name: 'هافان / ذهبي', hex: '#C59B27' },
+  { name: 'برتقالي هادئ', hex: '#E67E22' },
 ];
 
 export default function AdminProductsPage() {
@@ -24,6 +67,13 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingImages, setEditingImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Custom Colors
+  const [customColors, setCustomColors] = useState<{ name: string; hex: string }[]>([]);
+  const [newCustomColorName, setNewCustomColorName] = useState('');
+  const [newCustomColorHex, setNewCustomColorHex] = useState('#E8A598');
+
+  const allColorOptions = [...COLOR_OPTIONS, ...customColors];
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -111,7 +161,7 @@ export default function AdminProductsPage() {
     }
   };
 
-  const toggleColor = (colorName: string, isEdit = false) => {
+  const toggleColor = (colorName: string, isEdit = false, customHex?: string) => {
     if (isEdit && editingProduct) {
       const currentVariants = editingProduct.variants || [];
       const exists = currentVariants.some((v) => v.color === colorName);
@@ -121,16 +171,16 @@ export default function AdminProductsPage() {
           variants: currentVariants.filter((v) => v.color !== colorName),
         });
       } else {
-        const colorObj = COLOR_OPTIONS.find((c) => c.name === colorName) || {
+        const colorObj = allColorOptions.find((c) => c.name === colorName) || {
           name: colorName,
-          hex: '#888',
+          hex: customHex || '#888888',
         };
         const newVariant: ProductVariant = {
           id: 0,
           productId: editingProduct.id,
           size: 'L',
           color: colorObj.name,
-          colorHex: colorObj.hex,
+          colorHex: customHex || colorObj.hex,
           stock: 10,
         };
         setEditingProduct({
@@ -145,6 +195,18 @@ export default function AdminProductsPage() {
           : [...prev, colorName]
       );
     }
+  };
+
+  const handleAddCustomColor = (e: React.MouseEvent, isEdit = false) => {
+    e.preventDefault();
+    if (!newCustomColorName.trim()) return;
+    const name = newCustomColorName.trim();
+    const hex = newCustomColorHex;
+    if (!allColorOptions.some((c) => c.name === name)) {
+      setCustomColors((prev) => [...prev, { name, hex }]);
+    }
+    toggleColor(name, isEdit, hex);
+    setNewCustomColorName('');
   };
 
   const openEditModal = (p: Product) => {
@@ -162,9 +224,9 @@ export default function AdminProductsPage() {
     const variants = (
       selectedColors.length > 0 ? selectedColors : ['أسود']
     ).map((colorName) => {
-      const colorObj = COLOR_OPTIONS.find((c) => c.name === colorName) || {
+      const colorObj = allColorOptions.find((c) => c.name === colorName) || {
         name: colorName,
-        hex: '#888',
+        hex: '#888888',
       };
       return { size: 'L', color: colorObj.name, colorHex: colorObj.hex, stock: 10 };
     });
@@ -506,16 +568,22 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="form-group full-width">
-              <label className="form-label">الألوان المتاحة 🎨</label>
+              <label className="form-label">الألوان المتاحة للمنتج 🎨</label>
               <div
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: '10px',
+                  gap: '8px',
                   marginTop: '6px',
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                  padding: '10px',
+                  background: 'var(--color-bg-alt)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--color-border)',
                 }}
               >
-                {COLOR_OPTIONS.map((c) => {
+                {allColorOptions.map((c) => {
                   const isSelected = selectedColors.includes(c.name);
                   return (
                     <button
@@ -526,33 +594,80 @@ export default function AdminProductsPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        padding: '6px 14px',
+                        padding: '6px 12px',
                         borderRadius: 'var(--radius-full)',
                         border: isSelected
                           ? '2px solid var(--color-primary)'
                           : '1px solid var(--color-border)',
                         background: isSelected
                           ? 'var(--color-surface)'
-                          : 'var(--color-bg)',
+                          : 'white',
                         fontWeight: isSelected ? 700 : 500,
                         fontSize: '13px',
                         cursor: 'pointer',
+                        boxShadow: isSelected ? '0 2px 6px rgba(155,123,107,0.2)' : 'none',
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       <span
                         style={{
-                          width: '14px',
-                          height: '14px',
+                          width: '15px',
+                          height: '15px',
                           borderRadius: '50%',
                           background: c.hex,
-                          border: '1px solid rgba(0,0,0,0.2)',
+                          border: c.hex.toLowerCase() === '#ffffff' ? '1px solid #ccc' : '1px solid rgba(0,0,0,0.15)',
+                          flexShrink: 0,
                         }}
                       />
                       <span>{c.name}</span>
-                      {isSelected && <span>✓</span>}
+                      {isSelected && <span style={{ color: 'var(--color-primary)' }}>✓</span>}
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Custom Color Input */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginTop: '12px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: '13px', color: 'var(--color-text-light)' }}>
+                  ✨ أضيفي لوناً مخصصاً جديداً:
+                </span>
+                <input
+                  type="text"
+                  placeholder="اسم اللون (مثلاً: زيتي زاهي)"
+                  className="form-input"
+                  style={{ maxWidth: '180px', padding: '6px 12px', fontSize: '13px' }}
+                  value={newCustomColorName}
+                  onChange={(e) => setNewCustomColorName(e.target.value)}
+                />
+                <input
+                  type="color"
+                  title="اختاري درجة اللون"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--color-border)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  value={newCustomColorHex}
+                  onChange={(e) => setNewCustomColorHex(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={(e) => handleAddCustomColor(e, false)}
+                >
+                  + إضافة اللون
+                </button>
               </div>
             </div>
             <div className="form-group">
@@ -963,16 +1078,22 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="form-group full-width">
-                <label className="form-label">الألوان المتاحة</label>
+                <label className="form-label">الألوان المتاحة للمنتج 🎨</label>
                 <div
                   style={{
                     display: 'flex',
                     flexWrap: 'wrap',
-                    gap: '8px',
+                    gap: '6px',
                     marginTop: '6px',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    padding: '8px',
+                    background: 'var(--color-bg-alt)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border)',
                   }}
                 >
-                  {COLOR_OPTIONS.map((c) => {
+                  {allColorOptions.map((c) => {
                     const isSelected = editingProduct.variants?.some(
                       (v) => v.color === c.name
                     );
@@ -985,31 +1106,80 @@ export default function AdminProductsPage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          padding: '4px 10px',
+                          padding: '5px 10px',
                           borderRadius: 'var(--radius-full)',
                           border: isSelected
                             ? '2px solid var(--color-primary)'
                             : '1px solid var(--color-border)',
                           background: isSelected
                             ? 'var(--color-surface)'
-                            : 'var(--color-bg)',
+                            : 'white',
                           fontSize: '12px',
                           cursor: 'pointer',
+                          fontWeight: isSelected ? 700 : 500,
+                          boxShadow: isSelected ? '0 2px 6px rgba(155,123,107,0.2)' : 'none',
                         }}
                       >
                         <span
                           style={{
-                            width: '12px',
-                            height: '12px',
+                            width: '13px',
+                            height: '13px',
                             borderRadius: '50%',
                             background: c.hex,
+                            border: c.hex.toLowerCase() === '#ffffff' ? '1px solid #ccc' : '1px solid rgba(0,0,0,0.15)',
+                            flexShrink: 0,
                           }}
                         />
                         <span>{c.name}</span>
-                        {isSelected && <span>✓</span>}
+                        {isSelected && <span style={{ color: 'var(--color-primary)' }}>✓</span>}
                       </button>
                     );
                   })}
+                </div>
+
+                {/* Edit Modal Custom Color Input */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '10px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-light)' }}>
+                    ✨ أضيفي لوناً مخصصاً:
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="اسم اللون"
+                    className="form-input"
+                    style={{ maxWidth: '140px', padding: '4px 8px', fontSize: '12px' }}
+                    value={newCustomColorName}
+                    onChange={(e) => setNewCustomColorName(e.target.value)}
+                  />
+                  <input
+                    type="color"
+                    title="درجة اللون"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--color-border)',
+                      cursor: 'pointer',
+                      padding: '2px',
+                    }}
+                    value={newCustomColorHex}
+                    onChange={(e) => setNewCustomColorHex(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                    onClick={(e) => handleAddCustomColor(e, true)}
+                  >
+                    + إضافة
+                  </button>
                 </div>
               </div>
               <div className="form-group full-width">
