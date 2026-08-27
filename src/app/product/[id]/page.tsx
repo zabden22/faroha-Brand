@@ -154,20 +154,23 @@ export default function ProductDetailPage({
     );
   }
 
-  // Helper to render video player or iframe
+  // Helper to render video player or iframe for all platforms
   const renderVideoPlayer = (url: string) => {
     if (!url) return null;
+    const cleanUrl = url.trim();
+
     const isDirectVideo =
-      url.endsWith('.mp4') ||
-      url.endsWith('.webm') ||
-      url.endsWith('.mov') ||
-      url.includes('blob:') ||
-      url.includes('data:video');
+      cleanUrl.endsWith('.mp4') ||
+      cleanUrl.endsWith('.webm') ||
+      cleanUrl.endsWith('.mov') ||
+      cleanUrl.endsWith('.m4v') ||
+      cleanUrl.includes('blob:') ||
+      cleanUrl.includes('data:video');
 
     if (isDirectVideo) {
       return (
         <video
-          src={url}
+          src={cleanUrl}
           controls
           playsInline
           style={{
@@ -180,12 +183,26 @@ export default function ProductDetailPage({
       );
     }
 
-    // Embed for YouTube / other video links
-    let embedUrl = url;
-    if (url.includes('youtube.com/watch?v=')) {
-      embedUrl = url.replace('watch?v=', 'embed/');
-    } else if (url.includes('youtu.be/')) {
-      embedUrl = url.replace('youtu.be/', 'youtube.com/embed/');
+    // Embed for YouTube / YouTube Shorts
+    let embedUrl = cleanUrl;
+    if (cleanUrl.includes('youtube.com/shorts/')) {
+      const id = cleanUrl.split('youtube.com/shorts/')[1]?.split('?')[0];
+      embedUrl = `https://www.youtube.com/embed/${id}`;
+    } else if (cleanUrl.includes('youtube.com/watch?v=')) {
+      embedUrl = cleanUrl.replace('watch?v=', 'embed/');
+    } else if (cleanUrl.includes('youtu.be/')) {
+      embedUrl = cleanUrl.replace('youtu.be/', 'youtube.com/embed/');
+    } else if (cleanUrl.includes('instagram.com/reel/') || cleanUrl.includes('instagram.com/p/')) {
+      const match = cleanUrl.match(/instagram\.com\/(?:reel|p)\/([^/?#&]+)/);
+      if (match && match[1]) {
+        embedUrl = `https://www.instagram.com/p/${match[1]}/embed/`;
+      }
+    } else if (cleanUrl.includes('streamable.com/')) {
+      const id = cleanUrl.split('streamable.com/')[1]?.split('?')[0];
+      embedUrl = `https://streamable.com/e/${id}`;
+    } else if (cleanUrl.includes('drive.google.com/file/d/')) {
+      const id = cleanUrl.split('/d/')[1]?.split('/')[0];
+      embedUrl = `https://drive.google.com/file/d/${id}/preview`;
     }
 
     return (
@@ -196,6 +213,7 @@ export default function ProductDetailPage({
           height: 0,
           overflow: 'hidden',
           borderRadius: '12px',
+          background: '#000',
         }}
       >
         <iframe

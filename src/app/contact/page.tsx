@@ -29,14 +29,14 @@ export default function ContactPage() {
           <div className="social-grid">
             {/* WhatsApp */}
             <a
-              href="https://wa.me/qr/B2BAMH7XYP4VF1"
+              href="https://wa.me/201006955864"
               target="_blank"
               rel="noopener noreferrer"
               className="social-card whatsapp"
             >
               <div className="social-card-icon">💬</div>
               <div className="social-card-title">واتساب | WhatsApp</div>
-              <div className="social-card-handle">تواصل مباشر وتأكيد طلبات</div>
+              <div className="social-card-handle">01006955864 (تواصل وتأكيد فوري)</div>
             </a>
 
             {/* Instagram */}

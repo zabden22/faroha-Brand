@@ -27,25 +27,43 @@ function OrderSuccessContent() {
   }, [orderNumberParam]);
 
   // WhatsApp Link Message Generator
+  // WhatsApp Link Message Generator
   const getWhatsAppMessage = () => {
     if (!order) return '';
     const itemsList = order.items
-      ?.map((item) => `• ${item.productName} (${item.variantInfo || 'قياسي'}) × ${item.quantity}`)
+      ?.map(
+        (item: any) =>
+          `• ${item.productName || 'قطعة'} (${item.variantInfo || 'قياسي'}) × ${item.quantity}`
+      )
       .join('\n');
 
-    const msg = `أهلاً FarOha Brand 🌸
-أود تأكيد طلبي رقم: *${order.orderNumber}*
+    const total = order.totalAmount || 0;
+    const deposit = order.depositAmount || Math.round(total * 0.25);
+    const remaining = order.remainingAmount || total - deposit;
+
+    const msg = `🛍️ طلب جديد من FarOha Brand 🌸
+-----------------------------
+🏷️ رقم الطلب: *${order.orderNumber}*
 👤 الاسم: ${order.customerName}
 📞 الهاتف: ${order.phone}
 📍 العنوان: ${order.governorate} - ${order.address}
-💳 طريقة الدفع: ${order.paymentMethod}
-💰 الإجمالي: ${order.totalAmount} ج.م
 
-المنتجات:
-${itemsList || ''}`;
+👗 المنتجات المطلوبة:
+${itemsList || ''}
 
-    return `https://wa.me/qr/B2BAMH7XYP4VF1?text=${encodeURIComponent(msg)}`;
+💰 تفاصيل الحساب والدفع:
+• إجمالي الطلب: ${total} ج.م
+• 🔒 العربون المطلوب (ديبوزيت 25%): ${deposit} ج.م
+• 💵 المبلغ المتبقي عند الاستلام: ${remaining} ج.م
+• طريقة الدفع: ${order.paymentMethod || 'عربون فودافون كاش والباقي عند الاستلام'}
+
+(يرجى تحويل العربون على رقم فودافون كاش: 01006955864 لتأكيد الشحن) ✨`;
+
+    return `https://api.whatsapp.com/send?phone=201006955864&text=${encodeURIComponent(msg)}`;
   };
+
+  const deposit = order?.depositAmount || (order ? Math.round(order.totalAmount * 0.25) : 0);
+  const remaining = order?.remainingAmount || (order ? order.totalAmount - deposit : 0);
 
   return (
     <div className="container" style={{ paddingBlock: 'var(--space-2xl)' }}>
@@ -56,11 +74,66 @@ ${itemsList || ''}`;
           تم استلام طلبكِ بنجاح! 🌸
         </h1>
         <p style={{ color: 'var(--color-text-light)', fontSize: '15px' }}>
-          شكراً لتسوقكِ من FarOha_Brand. سنقوم بتجهيز طلبكِ وتشحيته في أقرب وقت.
+          شكراً لتسوقكِ من FarOha_Brand. سنقوم بتجهيز طلبكِ وتشحيته في أقرب وقت فور تأكيد العربون.
         </p>
 
         <div className="order-badge-number">
           رقم الطلب: {order?.orderNumber || orderNumberParam || 'FAR-1000'}
+        </div>
+
+        {/* 25% Deposit Instruction Card */}
+        <div
+          style={{
+            background: '#fdf7f3',
+            border: '2px solid #e8d0c2',
+            borderRadius: '12px',
+            padding: '18px',
+            marginBlock: '20px',
+            textAlign: 'right',
+          }}
+        >
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-primary-dark)', marginBottom: '8px' }}>
+            💳 خطوة هامة لتأكيد وشحن الطلب (العربون 25%):
+          </h3>
+          <p style={{ fontSize: '14px', lineHeight: 1.6, marginBottom: '12px' }}>
+            يرجى تحويل مبلغ العربون <strong>({deposit} ج.م)</strong> عبر <strong>فودافون كاش أو إنستاباي</strong> إلى الرقم أدناه، وإرسال صورة التحويل عبر واتساب:
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'white',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              gap: '12px',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '22px',
+                fontWeight: 800,
+                color: 'var(--color-primary-dark)',
+                letterSpacing: '1px',
+              }}
+            >
+              01006955864
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText('01006955864');
+                alert('تم نسخ رقم الهاتف (01006955864) بنجاح! 📋');
+              }}
+              className="btn btn-outline btn-sm"
+              style={{ fontSize: '12px', padding: '6px 12px' }}
+            >
+              📋 نسخ الرقم
+            </button>
+          </div>
         </div>
 
         {order && (
@@ -69,7 +142,7 @@ ${itemsList || ''}`;
               background: 'var(--color-bg)',
               borderRadius: 'var(--radius-md)',
               padding: 'var(--space-lg)',
-              marginBlock: 'var(--space-lg)',
+              marginBottom: 'var(--space-lg)',
               textAlign: 'right',
               border: '1px solid var(--color-border)',
             }}
@@ -78,7 +151,7 @@ ${itemsList || ''}`;
               ملخص تفاصيل الطلب:
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '14px' }}>
               <div>
                 <strong>👤 الاسم:</strong> {order.customerName}
               </div>
@@ -89,22 +162,28 @@ ${itemsList || ''}`;
                 <strong>📍 العنوان:</strong> {order.governorate} - {order.address}
               </div>
               <div>
-                <strong>💳 طريقة الدفع:</strong> {order.paymentMethod}
-              </div>
-              <div>
-                <strong>🚚 الشحن:</strong> {order.deliveryFee} ج.م
-              </div>
-              <div>
                 <strong>💰 المبلغ الإجمالي:</strong>{' '}
                 <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
                   {order.totalAmount} ج.م
+                </span>
+              </div>
+              <div>
+                <strong>🔒 العربون (25%):</strong>{' '}
+                <span style={{ color: 'var(--color-primary-dark)', fontWeight: 700 }}>
+                  {deposit} ج.م
+                </span>
+              </div>
+              <div>
+                <strong>💵 المتبقي عند الاستلام:</strong>{' '}
+                <span style={{ fontWeight: 700 }}>
+                  {remaining} ج.م
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
           {/* Direct WhatsApp Confirmation Button */}
           {order && (
             <a
@@ -116,17 +195,18 @@ ${itemsList || ''}`;
                 background: '#25D366',
                 color: 'white',
                 fontSize: '16px',
-                fontWeight: 700,
-                padding: '14px 24px',
+                fontWeight: 800,
+                padding: '16px 24px',
                 borderRadius: 'var(--radius-md)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 textDecoration: 'none',
+                boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
               }}
             >
-              <span>💬</span> تأكيد الطلب مباشرة عبر الواتساب (WhatsApp)
+              <span>💬</span> إرسال تفاصيل الطلب والعربون عبر الواتساب (01006955864)
             </a>
           )}
 

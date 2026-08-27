@@ -46,7 +46,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
 
     const setOrderAndWhatsapp = (found: any) => {
       setOrder(found);
-      const storePhone = process.env.NEXT_PUBLIC_STORE_WHATSAPP || '201099998877';
+      const storePhone = '201006955864';
       const itemsText = (found.items || [])
         .map(
           (item: any) =>
@@ -54,17 +54,23 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
         )
         .join('\n');
 
-      const message = `🛍️ طلب جديد من FarOha_Brand\n\n` +
-        `رقم الطلب: ${found.orderNumber}\n` +
+      const total = (found.totalAmount || 0) + (found.deliveryFee || 0);
+      const deposit = Math.round(total * 0.25);
+      const remaining = total - deposit;
+
+      const message = `🛍️ طلب جديد من FarOha_Brand 🌸\n\n` +
+        `رقم الطلب: *${found.orderNumber}*\n` +
         `الاسم: ${found.customerName}\n` +
         `الهاتف: ${found.phone}\n\n` +
         `المنتجات:\n${itemsText}\n\n` +
-        `مصاريف الشحن: ${found.deliveryFee} جنيه\n` +
-        `الإجمالي الكلي: ${found.totalAmount + (found.deliveryFee || 0)} جنيه\n\n` +
-        `العنوان:\n${found.governorate}، ${found.city} — ${found.address}\n\n` +
-        `طريقة الدفع:\n${found.paymentMethod}`;
+        `الإجمالي الكلي: ${total} جنيه\n` +
+        `🔒 العربون المطلوب (ديبوزيت 25%): ${deposit} جنيه\n` +
+        `💵 المتبقي عند الاستلام: ${remaining} جنيه\n\n` +
+        `العنوان:\n${found.governorate}، ${found.city || ''} — ${found.address}\n\n` +
+        `طريقة الدفع:\n${found.paymentMethod}\n\n` +
+        `(تم تحويل العربون على محفظة: 01006955864)`;
 
-      setWhatsappUrl(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`);
+      setWhatsappUrl(`https://api.whatsapp.com/send?phone=${storePhone}&text=${encodeURIComponent(message)}`);
     };
 
     loadOrder();

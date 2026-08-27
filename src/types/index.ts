@@ -98,6 +98,8 @@ export interface Order {
   notes: string | null;
   createdAt: string;
   items?: OrderItem[];
+  depositAmount?: number;
+  remainingAmount?: number;
 }
 
 export interface DeliveryFee {

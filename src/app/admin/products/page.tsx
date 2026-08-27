@@ -214,8 +214,14 @@ export default function AdminProductsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
-      alert('⚠️ تنبيه: يُفضل اختيار فيديو بحجم أقل من 25 ميجابايت لضمان سرعة الحفظ والتحميل.');
+    // Check 4.5MB payload safety limit for serverless upload
+    if (file.size > 4.5 * 1024 * 1024) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      alert(
+        `⚠️ حجم ملف الفيديو (${mb} ميجابايت) أكبر من الحد المسموح للرفع المباشر (4.5 ميجابايت).\n\n💡 الحل الأفضل والأسرع:\nانسخي رابط الفيديو من (Instagram Reel أو YouTube Shorts أو TikTok أو Google Drive أو Streamable) وضعيه في خانة الرابط بالأسفل، وسيعمل فوراً بجودة وسرعة فائقة!`
+      );
+      e.target.value = '';
+      return;
     }
 
     const reader = new FileReader();

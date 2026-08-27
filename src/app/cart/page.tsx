@@ -131,13 +131,29 @@ export default function CartPage() {
                   <span>{subtotal} ج.م</span>
                 </div>
 
-                <Link href="/checkout" className="btn btn-primary btn-lg" style={{ marginTop: '24px', display: 'flex' }}>
+                {/* 25% Deposit Note */}
+                <div
+                  style={{
+                    background: '#fdf7f3',
+                    border: '1px solid #e8d0c2',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    marginTop: '14px',
+                    fontSize: '12px',
+                    color: 'var(--color-primary-dark)',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  🔒 <strong>تنبيه الديبوزيت:</strong> يُدفع عربون 25% (~{Math.round(subtotal * 0.25)} ج.م) لتأكيد الطلب والباقي عند الاستلام.
+                </div>
+
+                <Link href="/checkout" className="btn btn-primary btn-lg" style={{ marginTop: '16px', display: 'flex' }}>
                   إتمام الطلب 🛍️
                 </Link>
 
                 <Link
                   href="/shop"
-                  style={{ display: 'block', textAlign: 'center', marginTop: '16px', fontSize: '14px', color: 'var(--color-primary)' }}
+                  style={{ display: 'block', textAlign: 'center', marginTop: '14px', fontSize: '14px', color: 'var(--color-primary)' }}
                 >
                   متابعة التسوق
                 </Link>
