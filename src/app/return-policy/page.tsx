@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { RefreshIcon } from '@/components/Icons';
 
 export default function ReturnPolicyPage() {
   return (
@@ -8,8 +9,9 @@ export default function ReturnPolicyPage() {
 
       <main className="section">
         <div className="container" style={{ maxWidth: '800px' }}>
-          <h1 className="section-title text-center" style={{ marginBottom: '12px' }}>
-            سياسة الاستبدال والإرجاع 🔄
+          <h1 className="section-title text-center" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <RefreshIcon size={26} style={{ color: 'var(--color-primary)' }} />
+            سياسة الاستبدال والإرجاع
           </h1>
           <p className="section-subtitle text-center" style={{ marginBottom: '40px' }}>
             نحرص في FarOha_Brand على رضاكِ الكامل عن اختياركِ وتجربتكِ معنا.
@@ -50,7 +52,7 @@ export default function ReturnPolicyPage() {
               4. كيف تقدمين طلب الاستبدال؟
             </h3>
             <p style={{ lineHeight: '1.8', color: 'var(--color-text-light)' }}>
-              كل ما عليكِ هو التواصل معنا عبر خدمة العملاء على <strong>واتساب (01099998877)</strong> وتزويدنا برقم الطلب مع توضيح سبب الطلب، وسيقوم فريقنا بتنسيق زيارة المندوب لاستلام القطعة وإرسال البديل فوراً.
+              كل ما عليكِ هو التواصل معنا عبر خدمة العملاء على <strong>واتساب (01006955864)</strong> وتزويدنا برقم الطلب مع توضيح سبب الطلب، وسيقوم فريقنا بتنسيق زيارة المندوب لاستلام القطعة وإرسال البديل فوراً.
             </p>
           </div>
         </div>

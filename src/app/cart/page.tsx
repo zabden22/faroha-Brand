@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { CartIcon, BagIcon, LockIcon } from '@/components/Icons';
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -51,8 +52,9 @@ export default function CartPage() {
 
       <main className="cart-page">
         <div className="container">
-          <h1 className="section-title" style={{ marginBottom: '24px' }}>
-            سلة التسوق 🛒
+          <h1 className="section-title" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CartIcon size={26} style={{ color: 'var(--color-primary)' }} />
+            سلة التسوق
           </h1>
 
           {!isLoaded ? (
@@ -142,13 +144,18 @@ export default function CartPage() {
                     fontSize: '12px',
                     color: 'var(--color-primary-dark)',
                     lineHeight: 1.4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  🔒 <strong>تنبيه الديبوزيت:</strong> يُدفع عربون 25% (~{Math.round(subtotal * 0.25)} ج.م) لتأكيد الطلب والباقي عند الاستلام.
+                  <LockIcon size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                  <span><strong>تنبيه الديبوزيت:</strong> يُدفع عربون 25% (~{Math.round(subtotal * 0.25)} ج.م) لتأكيد الطلب والباقي عند الاستلام.</span>
                 </div>
 
-                <Link href="/checkout" className="btn btn-primary btn-lg" style={{ marginTop: '16px', display: 'flex' }}>
-                  إتمام الطلب 🛍️
+                <Link href="/checkout" className="btn btn-primary btn-lg" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <BagIcon size={20} />
+                  إتمام الطلب
                 </Link>
 
                 <Link
@@ -161,7 +168,9 @@ export default function CartPage() {
             </div>
           ) : (
             <div className="empty-state">
-              <div className="empty-state-icon">🛍️</div>
+              <div className="empty-state-icon" style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}>
+                <BagIcon size={48} style={{ color: 'var(--color-primary-light)' }} />
+              </div>
               <h3 className="empty-state-title">سلة التسوق فارغة حالياً</h3>
               <p>استكشفي تشكيلتنا الأنيقة وأضيفي قطعكِ المفضلة إلى السلة</p>
               <Link href="/shop" className="btn btn-primary btn-lg" style={{ marginTop: '24px', display: 'inline-flex' }}>

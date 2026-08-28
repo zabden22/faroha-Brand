@@ -2507,15 +2507,25 @@ ul, ol {
 }
 
 .payment-card-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-secondary);
+  background: rgba(155, 123, 107, 0.1);
+  color: var(--color-primary);
   border-radius: var(--radius-md);
   flex-shrink: 0;
+  transition: all var(--transition-fast) ease;
+}
+
+.payment-card.active .payment-card-icon {
+  background: var(--color-primary);
+  color: white !important;
+}
+
+.payment-card.active .payment-card-icon svg {
+  color: white !important;
 }
 
 .payment-card-info {

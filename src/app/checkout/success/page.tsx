@@ -6,6 +6,16 @@ import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Order } from '@/types';
+import {
+  FlowerIcon,
+  CreditCardIcon,
+  CopyIcon,
+  PhoneIcon,
+  LocationIcon,
+  LockIcon,
+  ChatIcon,
+  CheckCircleIcon,
+} from '@/components/Icons';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
@@ -27,7 +37,6 @@ function OrderSuccessContent() {
   }, [orderNumberParam]);
 
   // WhatsApp Link Message Generator
-  // WhatsApp Link Message Generator
   const getWhatsAppMessage = () => {
     if (!order) return '';
     const itemsList = order.items
@@ -41,23 +50,23 @@ function OrderSuccessContent() {
     const deposit = order.depositAmount || Math.round(total * 0.25);
     const remaining = order.remainingAmount || total - deposit;
 
-    const msg = `🛍️ طلب جديد من FarOha Brand 🌸
+    const msg = `طلب جديد من FarOha Brand
 -----------------------------
-🏷️ رقم الطلب: *${order.orderNumber}*
-👤 الاسم: ${order.customerName}
-📞 الهاتف: ${order.phone}
-📍 العنوان: ${order.governorate} - ${order.address}
+رقم الطلب: *${order.orderNumber}*
+الاسم: ${order.customerName}
+الهاتف: ${order.phone}
+العنوان: ${order.governorate} - ${order.address}
 
-👗 المنتجات المطلوبة:
+المنتجات المطلوبة:
 ${itemsList || ''}
 
-💰 تفاصيل الحساب والدفع:
+تفاصيل الحساب والدفع:
 • إجمالي الطلب: ${total} ج.م
-• 🔒 العربون المطلوب (ديبوزيت 25%): ${deposit} ج.م
-• 💵 المبلغ المتبقي عند الاستلام: ${remaining} ج.م
+• العربون المطلوب (ديبوزيت 25%): ${deposit} ج.م
+• المبلغ المتبقي عند الاستلام: ${remaining} ج.م
 • طريقة الدفع: ${order.paymentMethod || 'عربون فودافون كاش والباقي عند الاستلام'}
 
-(يرجى تحويل العربون على رقم فودافون كاش: 01006955864 لتأكيد الشحن) ✨`;
+(يرجى تحويل العربون على رقم فودافون كاش: 01006955864 لتأكيد الشحن)`;
 
     return `https://api.whatsapp.com/send?phone=201006955864&text=${encodeURIComponent(msg)}`;
   };
@@ -68,13 +77,33 @@ ${itemsList || ''}
   return (
     <div className="container" style={{ paddingBlock: 'var(--space-2xl)' }}>
       <div className="checkout-section success-container">
-        <div className="success-icon-badge">✓</div>
+        <div
+          className="success-icon-badge"
+          style={{
+            background: 'rgba(155, 123, 107, 0.12)',
+            color: 'var(--color-primary-dark)',
+          }}
+        >
+          <CheckCircleIcon size={44} style={{ color: 'var(--color-primary)' }} />
+        </div>
 
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)', marginBottom: '8px' }}>
-          تم استلام طلبكِ بنجاح! 🌸
+        <h1
+          style={{
+            fontSize: '28px',
+            fontWeight: 800,
+            color: 'var(--color-text)',
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          <FlowerIcon size={26} style={{ color: 'var(--color-primary)' }} />
+          تم استلام طلبكِ بنجاح!
         </h1>
         <p style={{ color: 'var(--color-text-light)', fontSize: '15px' }}>
-          شكراً لتسوقكِ من FarOha_Brand. سنقوم بتجهيز طلبكِ وتشحيته في أقرب وقت فور تأكيد العربون.
+          شكراً لتسوقكِ من FarOha_Brand. سنقوم بتجهيز طلبكِ وشحنه في أقرب وقت فور تأكيد العربون.
         </p>
 
         <div className="order-badge-number">
@@ -92,8 +121,19 @@ ${itemsList || ''}
             textAlign: 'right',
           }}
         >
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-primary-dark)', marginBottom: '8px' }}>
-            💳 خطوة هامة لتأكيد وشحن الطلب (العربون 25%):
+          <h3
+            style={{
+              fontSize: '16px',
+              fontWeight: 800,
+              color: 'var(--color-primary-dark)',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <CreditCardIcon size={20} style={{ color: 'var(--color-primary)' }} />
+            خطوة هامة لتأكيد وشحن الطلب (العربون 25%):
           </h3>
           <p style={{ fontSize: '14px', lineHeight: 1.6, marginBottom: '12px' }}>
             يرجى تحويل مبلغ العربون <strong>({deposit} ج.م)</strong> عبر <strong>فودافون كاش أو إنستاباي</strong> إلى الرقم أدناه، وإرسال صورة التحويل عبر واتساب:
@@ -126,12 +166,13 @@ ${itemsList || ''}
               type="button"
               onClick={() => {
                 navigator.clipboard.writeText('01006955864');
-                alert('تم نسخ رقم الهاتف (01006955864) بنجاح! 📋');
+                alert('تم نسخ رقم الهاتف (01006955864) بنجاح!');
               }}
               className="btn btn-outline btn-sm"
-              style={{ fontSize: '12px', padding: '6px 12px' }}
+              style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
-              📋 نسخ الرقم
+              <CopyIcon size={14} />
+              نسخ الرقم
             </button>
           </div>
         </div>
@@ -153,30 +194,38 @@ ${itemsList || ''}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '14px' }}>
               <div>
-                <strong>👤 الاسم:</strong> {order.customerName}
+                <strong>الاسم:</strong> {order.customerName}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <PhoneIcon size={15} style={{ color: 'var(--color-primary)' }} />
+                <span><strong>الهاتف:</strong> {order.phone}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <LocationIcon size={15} style={{ color: 'var(--color-primary)' }} />
+                <span><strong>العنوان:</strong> {order.governorate} - {order.address}</span>
               </div>
               <div>
-                <strong>📞 الهاتف:</strong> {order.phone}
-              </div>
-              <div>
-                <strong>📍 العنوان:</strong> {order.governorate} - {order.address}
-              </div>
-              <div>
-                <strong>💰 المبلغ الإجمالي:</strong>{' '}
+                <strong>المبلغ الإجمالي:</strong>{' '}
                 <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
                   {order.totalAmount} ج.م
                 </span>
               </div>
-              <div>
-                <strong>🔒 العربون (25%):</strong>{' '}
-                <span style={{ color: 'var(--color-primary-dark)', fontWeight: 700 }}>
-                  {deposit} ج.م
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <LockIcon size={14} style={{ color: 'var(--color-primary)' }} />
+                <span>
+                  <strong>العربون (25%):</strong>{' '}
+                  <span style={{ color: 'var(--color-primary-dark)', fontWeight: 700 }}>
+                    {deposit} ج.م
+                  </span>
                 </span>
               </div>
-              <div>
-                <strong>💵 المتبقي عند الاستلام:</strong>{' '}
-                <span style={{ fontWeight: 700 }}>
-                  {remaining} ج.م
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CreditCardIcon size={14} style={{ color: 'var(--color-primary)' }} />
+                <span>
+                  <strong>المتبقي عند الاستلام:</strong>{' '}
+                  <span style={{ fontWeight: 700 }}>
+                    {remaining} ج.م
+                  </span>
                 </span>
               </div>
             </div>
@@ -206,7 +255,8 @@ ${itemsList || ''}
                 boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
               }}
             >
-              <span>💬</span> إرسال تفاصيل الطلب والعربون عبر الواتساب (01006955864)
+              <ChatIcon size={20} style={{ color: 'white' }} />
+              إرسال تفاصيل الطلب والعربون عبر الواتساب (01006955864)
             </a>
           )}
 
