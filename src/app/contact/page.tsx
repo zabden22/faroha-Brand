@@ -4,13 +4,15 @@ import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {
-  ChatIcon,
-  CameraIcon,
+  WhatsAppIcon,
+  InstagramIcon,
+  FacebookIcon,
   MailIcon,
   PartyIcon,
   RocketIcon,
   ClockIcon,
   TruckIcon,
+  ChatIcon,
 } from '@/components/Icons';
 
 export default function ContactPage() {
@@ -46,11 +48,14 @@ export default function ContactPage() {
               rel="noopener noreferrer"
               className="social-card whatsapp"
             >
-              <div className="social-card-icon" style={{ color: '#25D366' }}>
-                <ChatIcon size={28} />
+              <div className="social-card-icon">
+                <WhatsAppIcon size={30} />
               </div>
               <div className="social-card-title">واتساب | WhatsApp</div>
               <div className="social-card-handle">01006955864 (تواصل وتأكيد فوري)</div>
+              <span className="social-card-cta">
+                مراسلة فورية ↗
+              </span>
             </a>
 
             {/* Instagram */}
@@ -60,11 +65,14 @@ export default function ContactPage() {
               rel="noopener noreferrer"
               className="social-card instagram"
             >
-              <div className="social-card-icon" style={{ color: 'var(--color-primary)' }}>
-                <CameraIcon size={28} />
+              <div className="social-card-icon">
+                <InstagramIcon size={30} />
               </div>
               <div className="social-card-title">إنستجرام | Instagram</div>
               <div className="social-card-handle">@faroha_brand_eg</div>
+              <span className="social-card-cta">
+                متابعة الحساب ↗
+              </span>
             </a>
 
             {/* Facebook */}
@@ -74,11 +82,14 @@ export default function ContactPage() {
               rel="noopener noreferrer"
               className="social-card facebook"
             >
-              <div className="social-card-icon" style={{ color: 'var(--color-primary-dark)' }}>
-                <MailIcon size={28} />
+              <div className="social-card-icon">
+                <FacebookIcon size={30} />
               </div>
               <div className="social-card-title">فيسبوك | Facebook</div>
               <div className="social-card-handle">الصفحة الرسمية على فيسبوك</div>
+              <span className="social-card-cta">
+                زيارة الصفحة ↗
+              </span>
             </a>
           </div>
 

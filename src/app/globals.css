@@ -2593,18 +2593,12 @@ ul, ol {
 /* ---------- Social Media & Contact ---------- */
 .social-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-md);
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
   margin-block: var(--space-xl);
 }
 
-@media (max-width: 992px) {
-  .social-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
+@media (max-width: 900px) {
   .social-grid {
     grid-template-columns: 1fr;
   }
@@ -2614,52 +2608,111 @@ ul, ol {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+  padding: 32px 24px;
   border-radius: var(--radius-lg);
-  color: white !important;
+  background: var(--color-bg-card);
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text) !important;
   text-decoration: none;
-  transition: all var(--transition-medium) ease;
-  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base) ease;
+  box-shadow: 0 4px 20px rgba(155, 123, 107, 0.05);
   position: relative;
   overflow: hidden;
 }
 
+.social-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  transition: all var(--transition-base) ease;
+}
+
+.social-card.whatsapp::before {
+  background: #25D366;
+}
+
+.social-card.instagram::before {
+  background: linear-gradient(90deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+
+.social-card.facebook::before {
+  background: #1877F2;
+}
+
 .social-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-lg);
-}
-
-.social-card.whatsapp {
-  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-}
-
-.social-card.instagram {
-  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-}
-
-.social-card.facebook {
-  background: linear-gradient(135deg, #1877F2 0%, #0d52ab 100%);
-}
-
-.social-card.tiktok {
-  background: linear-gradient(135deg, #000000 0%, #25F4EE 50%, #FE2C55 100%);
+  transform: translateY(-6px);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 12px 30px rgba(155, 123, 107, 0.12);
 }
 
 .social-card-icon {
-  font-size: 36px;
-  margin-bottom: var(--space-sm);
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+  transition: transform var(--transition-fast) ease;
+}
+
+.social-card:hover .social-card-icon {
+  transform: scale(1.08);
+}
+
+.social-card.whatsapp .social-card-icon {
+  background: rgba(37, 211, 102, 0.1);
+  color: #25D366;
+  border: 1px solid rgba(37, 211, 102, 0.25);
+}
+
+.social-card.instagram .social-card-icon {
+  background: rgba(225, 48, 108, 0.1);
+  color: #C13584;
+  border: 1px solid rgba(225, 48, 108, 0.25);
+}
+
+.social-card.facebook .social-card-icon {
+  background: rgba(24, 119, 242, 0.1);
+  color: #1877F2;
+  border: 1px solid rgba(24, 119, 242, 0.25);
 }
 
 .social-card-title {
-  font-weight: 800;
-  font-size: var(--font-size-lg);
-  margin-bottom: 2px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--color-text);
+  margin-bottom: 6px;
 }
 
 .social-card-handle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.social-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-alt);
+  color: var(--color-primary-dark);
   font-size: var(--font-size-xs);
-  opacity: 0.9;
+  font-weight: 600;
+  transition: all var(--transition-fast) ease;
+}
+
+.social-card:hover .social-card-cta {
+  background: var(--color-primary);
+  color: white;
 }
 
 /* ---------- Admin Dashboard ---------- */
