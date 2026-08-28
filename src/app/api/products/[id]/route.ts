@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 
 // PUT /api/products/[id] — Update a product
@@ -64,6 +65,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       include: { category: true, images: true, variants: true },
     });
 
+    // Trigger static page cache revalidation
+    revalidatePath('/');
+    revalidatePath('/shop');
+    revalidatePath(`/product/${productId}`);
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Error updating product:', error);
@@ -84,6 +90,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       prisma.productVariant.deleteMany({ where: { productId: productId } }),
       prisma.product.delete({ where: { id: productId } }),
     ]);
+
+    // Trigger static page cache revalidation
+    revalidatePath('/');
+    revalidatePath('/shop');
+    revalidatePath(`/product/${productId}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

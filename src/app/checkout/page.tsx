@@ -7,6 +7,18 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { EGYPTIAN_GOVERNORATES } from '@/types';
+import {
+  BagIcon,
+  CartIcon,
+  LocationIcon,
+  CreditCardIcon,
+  PhoneIcon,
+  CopyIcon,
+  RocketIcon,
+  LockIcon,
+  PartyIcon,
+  LightningIcon,
+} from '@/components/Icons';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -30,6 +42,10 @@ export default function CheckoutPage() {
 
   const [deliveryFeesList, setDeliveryFeesList] = useState<any[]>([]);
 
+  // 50% discount state for every 500th order
+  const [isDiscountEligible, setIsDiscountEligible] = useState(false);
+  const [nextOrderNumber, setNextOrderNumber] = useState(1);
+
   useEffect(() => {
     try {
       const cart = JSON.parse(localStorage.getItem('faroha_cart') || '[]');
@@ -47,6 +63,19 @@ export default function CheckoutPage() {
         if (Array.isArray(data)) setDeliveryFeesList(data);
       })
       .catch((e) => console.error(e));
+
+    // Check discount eligibility
+    fetch('/api/orders/check-discount', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.isEligibleForDiscount) {
+          setIsDiscountEligible(true);
+        }
+        if (data && data.nextOrderNumberIndex) {
+          setNextOrderNumber(data.nextOrderNumberIndex);
+        }
+      })
+      .catch((e) => console.error(e));
   }, []);
 
   // Calculate Subtotal
@@ -55,12 +84,15 @@ export default function CheckoutPage() {
     return acc + price * item.quantity;
   }, 0);
 
+  // 50% discount for every 500th order (excluding shipping fee)
+  const discountAmount = isDiscountEligible ? Math.round(subtotal * 0.5) : 0;
+
   // Calculate Delivery Fee for selected governorate
   const matchedFeeObj = deliveryFeesList.find(
     (item) => item.governorate.trim() === governorate.trim()
   );
   const deliveryFee = matchedFeeObj ? matchedFeeObj.fee : 60;
-  const totalAmount = subtotal + deliveryFee;
+  const totalAmount = subtotal - discountAmount + deliveryFee;
 
   // 25% Deposit calculation
   const depositAmount = Math.round(totalAmount * 0.25);
@@ -84,7 +116,7 @@ export default function CheckoutPage() {
     const payload = {
       totalAmount,
       deliveryFee,
-      paymentMethod: paymentLabel,
+      paymentMethod: paymentLabel + (isDiscountEligible ? ` [مخصم 50% بمناسبة الأوردر رقم ${nextOrderNumber}]` : ''),
       customerName,
       phone: altPhone ? `${phone} / ${altPhone}` : phone,
       governorate,
@@ -151,7 +183,9 @@ export default function CheckoutPage() {
         <Navbar />
         <main className="container" style={{ padding: '80px var(--space-md)', textAlign: 'center' }}>
           <div className="empty-state">
-            <div className="empty-state-icon">🛒</div>
+            <div className="empty-state-icon" style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CartIcon size={48} style={{ color: 'var(--color-primary)' }} />
+            </div>
             <h2 className="section-title">سلة التسوق فارغة</h2>
             <p>لا يمكنك إتمام الطلب لأن سلة التسوق لا تحتوي على أي منتجات.</p>
             <Link href="/shop" className="btn btn-primary btn-lg" style={{ marginTop: '24px', display: 'inline-flex' }}>
@@ -171,8 +205,34 @@ export default function CheckoutPage() {
       <main style={{ paddingBlock: 'var(--space-2xl)' }}>
         <div className="container">
           <h1 className="section-title" style={{ marginBottom: '24px' }}>
-            إتمام الطلب 🛍️
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              إتمام الطلب
+              <BagIcon size={24} style={{ color: 'var(--color-primary)' }} />
+            </span>
           </h1>
+
+          {/* Discount Banner if eligible */}
+          {isDiscountEligible && (
+            <div className="discount-banner" style={{
+              background: 'linear-gradient(135deg, #6B9B7B 0%, #8FBFA0 100%)',
+              color: 'white',
+              borderRadius: 'var(--radius-lg)',
+              padding: '20px',
+              marginBottom: '24px',
+              boxShadow: 'var(--shadow-md)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+            }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <PartyIcon size={32} style={{ color: 'white' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>تهانينا يا جميلة! طلبكِ هو الطلب رقم {nextOrderNumber} المميز!</h3>
+                <p style={{ fontSize: '14px', opacity: 0.9, margin: 0 }}>لقد حصلتِ على خصم 50% تلقائياً على جميع منتجات السلة بمناسبة وصولنا لـ {nextOrderNumber} أوردر!</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmitOrder} className="checkout-grid">
             {/* Left Column: Customer Info & Shipping & Payment */}
@@ -180,7 +240,8 @@ export default function CheckoutPage() {
               {/* Section 1: Customer Details */}
               <div className="checkout-section">
                 <h2 className="checkout-section-title">
-                  <span>📍</span> بيانات التوصيل والإستلام
+                  <LocationIcon size={20} style={{ color: 'var(--color-primary)' }} />
+                  بيانات التوصيل والإستلام
                 </h2>
 
                 <div className="form-grid">
@@ -281,7 +342,8 @@ export default function CheckoutPage() {
               {/* Section 2: Payment Method Choice & 25% Deposit Policy */}
               <div className="checkout-section">
                 <h2 className="checkout-section-title">
-                  <span>💳</span> طريقة الدفع وسياسة العربون
+                  <CreditCardIcon size={20} style={{ color: 'var(--color-primary)' }} />
+                  طريقة الدفع وسياسة العربون
                 </h2>
 
                 <div
@@ -296,7 +358,7 @@ export default function CheckoutPage() {
                   }}
                 >
                   <strong style={{ color: 'var(--color-primary-dark)' }}>
-                    📌 تنبيه هام بخصوص تأكيد الطلبات:
+                    تنبيه هام بخصوص تأكيد الطلبات:
                   </strong>
                   <p style={{ marginTop: '4px', marginBottom: 0 }}>
                     لتأكيد جدية الحجز وبدء تجهيز القطع وشحنها، يُشترط دفع <strong>ديبوزيت (عربون 25% = {depositAmount} ج.م)</strong> مقدماً عبر <strong>فودافون كاش أو إنستاباي</strong>، ويتم سداد المبلغ المتبقي <strong>({remainingAmount} ج.م)</strong> نقداً لمندوب الشحن عند الاستلام.
@@ -310,7 +372,7 @@ export default function CheckoutPage() {
                     onClick={() => setPaymentMethod('vodafone')}
                   >
                     <div className="payment-card-radio" />
-                    <div className="payment-card-icon">📱</div>
+                    <div className="payment-card-icon" style={{ color: 'var(--color-primary)' }}><PhoneIcon size={20} /></div>
                     <div className="payment-card-info">
                       <div className="payment-card-title">عربون 25% عبر فودافون كاش + الباقي عند الاستلام</div>
                       <div className="payment-card-desc">تحويل العربون ({depositAmount} ج.م) لمحفظة فودافون كاش وسداد الباقي كاش للمندوب.</div>
@@ -323,7 +385,7 @@ export default function CheckoutPage() {
                     onClick={() => setPaymentMethod('instapay')}
                   >
                     <div className="payment-card-radio" />
-                    <div className="payment-card-icon">⚡</div>
+                    <div className="payment-card-icon" style={{ color: 'var(--color-primary)' }}><LightningIcon size={20} /></div>
                     <div className="payment-card-info">
                       <div className="payment-card-title">عربون 25% عبر إنستا باي (InstaPay) + الباقي عند الاستلام</div>
                       <div className="payment-card-desc">تحويل العربون ({depositAmount} ج.م) عبر تطبيق إنستاباي وسداد الباقي عند الاستلام.</div>
@@ -336,7 +398,7 @@ export default function CheckoutPage() {
                     onClick={() => setPaymentMethod('cod')}
                   >
                     <div className="payment-card-radio" />
-                    <div className="payment-card-icon">💵</div>
+                    <div className="payment-card-icon" style={{ color: 'var(--color-primary)' }}><CreditCardIcon size={20} /></div>
                     <div className="payment-card-info">
                       <div className="payment-card-title">دفع العربون (25%) فودافون كاش / إنستاباي والباقي كاش</div>
                       <div className="payment-card-desc">سداد باقي المبلغ ({remainingAmount} ج.م) نقداً لمندوب الشحن عند استلام الشحنة.</div>
@@ -350,7 +412,8 @@ export default function CheckoutPage() {
                   style={{ marginTop: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}
                 >
                   <p style={{ fontWeight: 700, color: 'var(--color-primary-dark)', marginBottom: '6px' }}>
-                    📱 رقم التحويل (فودافون كاش / إنستاباي):
+                    <PhoneIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                    رقم التحويل (فودافون كاش / إنستاباي):
                   </p>
                   <div
                     style={{
@@ -379,12 +442,15 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText('01006955864');
-                        alert('تم نسخ رقم الهاتف (01006955864) بنجاح! 📋');
+                        alert('تم نسخ رقم الهاتف (01006955864) بنجاح!');
                       }}
                       className="btn btn-outline btn-sm"
                       style={{ marginRight: 'auto', fontSize: '12px', padding: '4px 10px' }}
                     >
-                      📋 نسخ الرقم
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <CopyIcon size={14} />
+                        نسخ الرقم
+                      </span>
                     </button>
                   </div>
 
@@ -458,6 +524,13 @@ export default function CheckoutPage() {
                 <span style={{ fontWeight: 600 }}>{subtotal} ج.م</span>
               </div>
 
+              {isDiscountEligible && (
+                <div className="cart-summary-row" style={{ color: 'var(--color-success)', fontWeight: 700 }}>
+                  <span>خصم الأوردر الـ {nextOrderNumber} المميز (50%):</span>
+                  <span>-{discountAmount} ج.م</span>
+                </div>
+              )}
+
               <div className="cart-summary-row">
                 <span>مصاريف الشحن ({governorate}):</span>
                 <span style={{ fontWeight: 600, color: 'var(--color-primary-dark)' }}>
@@ -490,7 +563,7 @@ export default function CheckoutPage() {
                     marginBottom: '4px',
                   }}
                 >
-                  <span>🔒 العربون المطلوب (ديبوزيت 25%):</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><LockIcon size={14} style={{ color: 'var(--color-primary)' }} /> العربون المطلوب (ديبوزيت 25%):</span>
                   <span>{depositAmount} ج.م</span>
                 </div>
                 <div
@@ -501,7 +574,7 @@ export default function CheckoutPage() {
                     color: 'var(--color-text)',
                   }}
                 >
-                  <span>💵 المتبقي عند الاستلام:</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CreditCardIcon size={14} style={{ color: 'var(--color-primary)' }} /> المتبقي عند الاستلام:</span>
                   <span style={{ fontWeight: 600 }}>{remainingAmount} ج.م</span>
                 </div>
               </div>
@@ -512,7 +585,12 @@ export default function CheckoutPage() {
                 disabled={isSubmitting}
                 style={{ width: '100%', marginTop: '24px', justifyContent: 'center' }}
               >
-                {isSubmitting ? 'جاري تأكيد الطلب...' : 'تأكيد وإرسال الطلب 🚀'}
+                {isSubmitting ? 'جاري تأكيد الطلب...' : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    تأكيد وإرسال الطلب
+                    <RocketIcon size={20} />
+                  </span>
+                )}
               </button>
 
               <p
@@ -524,7 +602,10 @@ export default function CheckoutPage() {
                   lineHeight: 1.5,
                 }}
               >
-                🔒 بياناتكِ وسدادكِ آمنة بالكامل مع FarOha_Brand
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%' }}>
+                  <LockIcon size={12} />
+                  بياناتكِ وسدادكِ آمنة بالكامل مع FarOha_Brand
+                </span>
               </p>
             </div>
           </form>

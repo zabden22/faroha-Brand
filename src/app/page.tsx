@@ -1,46 +1,33 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import ProductCard from '@/components/ProductCard';
-import SizeGuide from '@/components/SizeGuide';
-import { Category, Product } from '@/types';
+import SizeGuideButton from '@/components/SizeGuideButton';
+import { BagIcon, FlowerIcon, RulerIcon } from '@/components/Icons';
+import {
+  CategoriesSection,
+  FeaturedProductsSection,
+  CategoriesSkeleton,
+  ProductsSkeleton,
+} from '@/components/HomeSections';
+import prisma from '@/lib/prisma';
 
-export default function Home() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+// Enable ISR (Incremental Static Regeneration)
+// Cache the homepage statically, revalidate at most once every 60 seconds (or on-demand via revalidatePath)
+export const revalidate = 60;
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [catsRes, prodsRes] = await Promise.all([
-          fetch('/api/categories', { cache: 'no-store' }),
-          fetch('/api/products', { cache: 'no-store' }),
-        ]);
-        const [cats, prods] = await Promise.all([
-          catsRes.json(),
-          prodsRes.json(),
-        ]);
-        if (Array.isArray(cats)) setCategories(cats);
-        if (Array.isArray(prods)) setProducts(prods);
-      } catch (e) {
-        console.error('Error loading homepage data:', e);
-      }
-    };
-    loadData();
-  }, []);
-
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-
-  const featuredProducts = products.filter((p) => p.isFeatured || p.isNew).slice(0, 4);
-  const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4);
+export default async function Home() {
+  // Lightweight query for Navbar categories so it renders immediately without blocking page stream
+  const categories = await prisma.category.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: 'asc' },
+  }).catch(() => []);
 
   return (
     <>
-      <Navbar />
+      {/* Pass categories to Navbar to avoid client-side API roundtrip on load */}
+      <Navbar initialCategories={categories} />
 
       <main>
         {/* Hero Section */}
@@ -62,8 +49,9 @@ export default function Home() {
                 اكتشفي تشكيلتنا المميزة من الملابس المحتشمة، المريحة والأنيقة التي تُبرز جمالكِ بأسلوب بسيط وراقٍ.
               </p>
               <div className="hero-actions">
-                <Link href="/shop" className="btn btn-primary btn-lg">
-                  تسوقي الآن 🛍️
+                <Link href="/shop" className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <BagIcon size={20} />
+                  تسوقي الآن
                 </Link>
                 <Link href="/shop" className="btn btn-outline btn-lg">
                   استكشفي التشكيلة
@@ -73,44 +61,30 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Categories Section (Dynamic) */}
+        {/* Categories Section (Streamed via Suspense) */}
         <section className="section bg-secondary">
           <div className="container">
             <h2 className="section-title text-center">أقسام المتجر</h2>
             <p className="section-subtitle text-center">تصفحي تشكيلاتنا المتنوعة والمصممة بحب</p>
 
-            <div className="categories-grid">
-              {categories.map((cat) => (
-                <Link key={cat.id} href={`/shop?category=${cat.id}`} className="category-card">
-                  <div className="category-card-image">
-                    <Image
-                      src={cat.image || '/images/category_dresses.jpg'}
-                      alt={cat.name}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
-                  </div>
-                  <div className="category-card-overlay" />
-                  <div className="category-card-content">
-                    <h3 className="category-card-name">{cat.name}</h3>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <Suspense fallback={<CategoriesSkeleton />}>
+              <CategoriesSection />
+            </Suspense>
           </div>
         </section>
 
-        {/* Featured Products Section (Dynamic) */}
+        {/* Featured Products Section (Streamed via Suspense) */}
         <section className="section">
           <div className="container">
-            <h2 className="section-title text-center">المنتجات المميزة 🌸</h2>
+            <h2 className="section-title text-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <FlowerIcon size={24} style={{ color: 'var(--color-primary)' }} />
+              المنتجات المميزة
+            </h2>
             <p className="section-subtitle text-center">أحدث وأحدث تصاميم FarOha_Brand الأكثر طلباً</p>
 
-            <div className="products-grid">
-              {displayProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <Suspense fallback={<ProductsSkeleton />}>
+              <FeaturedProductsSection />
+            </Suspense>
 
             <div style={{ textAlign: 'center', marginTop: '40px' }}>
               <Link href="/shop" className="btn btn-outline btn-lg">
@@ -123,14 +97,14 @@ export default function Home() {
         {/* Size Guide Section */}
         <section className="section bg-secondary text-center">
           <div className="container">
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>📏 لستِ متأكدة من مقاسكِ؟</h3>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <RulerIcon size={22} style={{ color: 'var(--color-primary)' }} />
+              لستِ متأكدة من مقاسكِ؟
+            </h3>
             <p style={{ color: 'var(--color-text-light)', marginBottom: '16px' }}>
               شاهدي دليل المقاسات التفاعلي الخاص بـ FarOha_Brand لاختيار المقاس الأنسب لكِ بسهولة
             </p>
-            <button className="btn btn-outline" onClick={() => setIsSizeGuideOpen(true)}>
-              عرض دليل المقاسات 📏
-            </button>
-            <SizeGuide isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
+            <SizeGuideButton />
           </div>
         </section>
       </main>

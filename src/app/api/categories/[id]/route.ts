@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 
 // PUT /api/categories/[id] — Update a category
@@ -13,6 +14,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         image: body.image,
       },
     });
+
+    // Trigger static page cache revalidation
+    revalidatePath('/');
+    revalidatePath('/shop');
+
     return NextResponse.json(category);
   } catch (error) {
     console.error('Error updating category:', error);
@@ -41,6 +47,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     await prisma.category.delete({ where: { id: catId } });
+
+    // Trigger static page cache revalidation
+    revalidatePath('/');
+    revalidatePath('/shop');
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting category:', error);

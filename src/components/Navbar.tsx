@@ -4,13 +4,18 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { FlowerIcon, BagIcon } from '@/components/Icons';
 
-export default function Navbar() {
+interface NavbarProps {
+  initialCategories?: { id: number; name: string }[];
+}
+
+export default function Navbar({ initialCategories }: NavbarProps = {}) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>(initialCategories || []);
 
   useEffect(() => {
     // Update cart count from localStorage
@@ -28,29 +33,25 @@ export default function Navbar() {
     window.addEventListener('storage', updateCount);
     window.addEventListener('cartUpdated', updateCount);
 
-    // Fetch dynamic categories
-    fetch('/api/categories', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setCategories(data);
-      })
-      .catch((e) => console.error('Error loading navbar categories:', e));
+    // Fetch dynamic categories if not provided initially
+    if (!initialCategories) {
+      fetch('/api/categories', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setCategories(data);
+        })
+        .catch((e) => console.error('Error loading navbar categories:', e));
+    }
 
     return () => {
       window.removeEventListener('storage', updateCount);
       window.removeEventListener('cartUpdated', updateCount);
     };
-  }, []);
+  }, [initialCategories]);
 
-  const dynamicCatLinks = categories.map((cat) => ({
-    href: `/shop?category=${cat.id}`,
-    label: cat.name,
-  }));
-
-  const navLinks = [
+  // Main navigation links for both Desktop and Mobile
+  const baseLinks = [
     { href: '/', label: 'الرئيسية' },
-    { href: '/shop', label: 'المتجر 🌸' },
-    ...dynamicCatLinks,
     { href: '/about', label: 'من نحن' },
     { href: '/return-policy', label: 'سياسة الاستبدال' },
     { href: '/contact', label: 'تواصلي معنا' },
@@ -64,7 +65,7 @@ export default function Navbar() {
           <Link href="/" className="navbar-logo">
             <Image
               src="/images/logo.png"
-              alt="FarOha Brand"
+              alt="FarOha Brand Logo"
               width={180}
               height={60}
               style={{
@@ -79,15 +80,44 @@ export default function Navbar() {
 
           {/* Nav Links (Desktop) */}
           <nav className="navbar-links">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={pathname === link.href ? 'active' : ''}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Link href="/" className={pathname === '/' ? 'active' : ''}>
+              الرئيسية
+            </Link>
+
+            {/* Dropdown Menu for Shop & Categories */}
+            <div className="nav-item-dropdown">
+              <span className={`nav-link-with-icon ${pathname.startsWith('/shop') ? 'active' : ''}`}>
+                المتجر
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+              <div className="dropdown-menu">
+                <Link href="/shop" className={pathname === '/shop' ? 'active' : ''}>
+                  <FlowerIcon size={14} style={{ display: 'inline-block', marginLeft: '6px', verticalAlign: 'middle', color: 'var(--color-primary)' }} />
+                  كل المنتجات
+                </Link>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/shop?category=${cat.id}`}
+                    className={pathname === `/shop?category=${cat.id}` ? 'active' : ''}
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <Link href="/about" className={pathname === '/about' ? 'active' : ''}>
+              من نحن
+            </Link>
+            <Link href="/return-policy" className={pathname === '/return-policy' ? 'active' : ''}>
+              سياسة الاستبدال
+            </Link>
+            <Link href="/contact" className={pathname === '/contact' ? 'active' : ''}>
+              تواصلي معنا
+            </Link>
           </nav>
 
           {/* Action Buttons */}
@@ -152,7 +182,34 @@ export default function Navbar() {
         </div>
 
         <nav className="mobile-menu-links">
-          {navLinks.map((link) => (
+          <Link href="/" className={pathname === '/' ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>
+            الرئيسية
+          </Link>
+          
+          {/* Shop Header in mobile */}
+          <div style={{ paddingBlock: '12px 6px', fontWeight: 700, fontSize: '13px', color: 'var(--color-primary-dark)', borderBottom: '1px dashed var(--color-border)' }}>
+            أقسام المتجر
+          </div>
+          <Link href="/shop" className={pathname === '/shop' ? 'active' : ''} onClick={() => setMobileMenuOpen(false)} style={{ paddingRight: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BagIcon size={16} style={{ color: 'var(--color-primary)' }} />
+            كل المنتجات
+          </Link>
+          {categories.map((cat) => (
+            <Link
+              key={cat.id}
+              href={`/shop?category=${cat.id}`}
+              className={pathname === `/shop?category=${cat.id}` ? 'active' : ''}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ paddingRight: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FlowerIcon size={14} style={{ color: 'var(--color-primary-light)' }} />
+              {cat.name}
+            </Link>
+          ))}
+
+          <div style={{ height: '16px' }} />
+
+          {baseLinks.slice(1).map((link) => (
             <Link
               key={link.href}
               href={link.href}

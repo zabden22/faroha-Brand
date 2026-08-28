@@ -1,844 +1,290 @@
-'use client';
-
-import { useState, use, useEffect, useMemo } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { Suspense } from 'react';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
-import SizeGuide from '@/components/SizeGuide';
-import { Product } from '@/types';
+import ProductDetailClient from '@/components/ProductDetailClient';
+import prisma from '@/lib/prisma';
 
-export default function ProductDetailPage({
+// Enable ISR (Incremental Static Regeneration)
+// Cache the product details statically, revalidate at most once every 60 seconds (or on-demand via revalidatePath)
+export const revalidate = 60;
+
+// Dynamic SEO metadata generation on the server
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const productId = Number(resolvedParams.id);
+
+  if (isNaN(productId)) return {};
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { name: true, description: true },
+  });
+
+  if (!product) return {};
+
+  return {
+    title: `${product.name} | FarOha_Brand`,
+    description: product.description.substring(0, 155),
+    openGraph: {
+      title: `${product.name} | FarOha_Brand`,
+      description: product.description.substring(0, 155),
+    },
+  };
+}
+
+// Pre-generate product pages at build time for extreme loading speed
+export async function generateStaticParams() {
+  try {
+    const products = await prisma.product.findMany({
+      select: { id: true },
+    });
+    return products.map((p) => ({
+      id: String(p.id),
+    }));
+  } catch (e) {
+    console.error('Error generating static params:', e);
+    return [];
+  }
+}
+
+export default async function ProductDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const resolvedParams = use(params);
-  const productId = Number(resolvedParams.id);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showVideoMain, setShowVideoMain] = useState(false);
-  const [selectedVariant, setSelectedVariant] = useState<any>(null);
-  const [selectedColor, setSelectedColor] = useState<string>('');
-  const [selectedSize, setSelectedSize] = useState<string>('L');
-  const [quantity, setQuantity] = useState(1);
-  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'care' | 'video'>('details');
-
-  useEffect(() => {
-    fetch('/api/products', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setProducts(data);
-      })
-      .catch((e) => console.error('Error fetching product:', e))
-      .finally(() => setIsLoaded(true));
-  }, []);
-
-  const product = products.find((p) => p.id === productId);
-
-  // Extract all unique available colors defined by the admin
-  const availableColors = useMemo(() => {
-    if (!product?.variants || product.variants.length === 0) return [];
-    const colorMap = new Map<string, { color: string; colorHex: string }>();
-    product.variants.forEach((v) => {
-      if (v.color && v.color.trim()) {
-        const key = v.color.trim();
-        if (!colorMap.has(key)) {
-          colorMap.set(key, {
-            color: key,
-            colorHex: v.colorHex || '#888888',
-          });
-        }
-      }
-    });
-    return Array.from(colorMap.values());
-  }, [product]);
-
-  // Extract all unique available sizes defined by the admin
-  const availableSizes = useMemo(() => {
-    if (!product?.variants || product.variants.length === 0) return [];
-    const sizeSet = new Set<string>();
-    product.variants.forEach((v) => {
-      if (v.size && v.size.trim()) sizeSet.add(v.size.trim());
-    });
-    return Array.from(sizeSet);
-  }, [product]);
-
-  // Sync default color, size and variant when product is loaded
-  useEffect(() => {
-    if (product) {
-      setCurrentImageIndex(0);
-      const firstVar = product.variants?.[0];
-      if (firstVar) {
-        setSelectedVariant(firstVar);
-        setSelectedColor(firstVar.color || '');
-        setSelectedSize(firstVar.size || 'L');
-      } else {
-        setSelectedVariant(null);
-        setSelectedColor('');
-        setSelectedSize('L');
-      }
-    }
-  }, [product?.id]);
-
-  // Handler when user selects a color
-  const handleSelectColor = (colorName: string) => {
-    setSelectedColor(colorName);
-    const matched =
-      product?.variants?.find(
-        (v) => v.color === colorName && v.size === selectedSize
-      ) ||
-      product?.variants?.find((v) => v.color === colorName) ||
-      selectedVariant;
-    if (matched) setSelectedVariant(matched);
-  };
-
-  // Handler when user selects a size
-  const handleSelectSize = (sizeName: string) => {
-    setSelectedSize(sizeName);
-    const matched =
-      product?.variants?.find(
-        (v) => v.size === sizeName && v.color === selectedColor
-      ) ||
-      product?.variants?.find((v) => v.size === sizeName) ||
-      selectedVariant;
-    if (matched) setSelectedVariant(matched);
-  };
-
-  const imagesList =
-    product?.images && product.images.length > 0
-      ? product.images.map((img) => img.imageUrl)
-      : ['/images/category_dresses.jpg'];
-
-  const currentImage = imagesList[currentImageIndex] || imagesList[0];
-
-  const handlePrevImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? imagesList.length - 1 : prev - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    setCurrentImageIndex((prev) =>
-      prev === imagesList.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const similarProducts = products
-    .filter((p) => p.id !== product?.id)
-    .slice(0, 3);
-
-  const handleAddToCart = (buyNow = false) => {
-    if (!product) return;
-    try {
-      const activeColor = selectedColor || availableColors[0]?.color || 'افتراضي';
-      const activeSize = selectedSize || availableSizes[0] || 'L';
-
-      const variantData = selectedVariant || {
-        id: 0,
-        productId: product.id,
-        size: activeSize,
-        color: activeColor,
-        colorHex: availableColors.find((c) => c.color === activeColor)?.colorHex || '#888888',
-        stock: 10,
-      };
-
-      const existingCart = JSON.parse(
-        localStorage.getItem('faroha_cart') || '[]'
-      );
-      const itemIndex = existingCart.findIndex(
-        (item: any) =>
-          item.productId === product.id &&
-          item.variant?.color === activeColor &&
-          item.variant?.size === activeSize
-      );
-
-      if (itemIndex > -1) {
-        existingCart[itemIndex].quantity += quantity;
-      } else {
-        existingCart.push({
-          productId: product.id,
-          variantId: variantData.id || null,
-          product,
-          variant: variantData,
-          quantity,
-        });
-      }
-
-      localStorage.setItem('faroha_cart', JSON.stringify(existingCart));
-      window.dispatchEvent(new Event('cartUpdated'));
-
-      if (buyNow) {
-        window.location.href = '/checkout';
-      } else {
-        alert(`تمت إضافة ${quantity} من "${product.name}" (اللون: ${activeColor}) إلى السلة! 🛍️`);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // ── Loading state ──
-  if (!isLoaded) {
-    return (
-      <>
-        <Navbar />
-        <main className="product-detail">
-          <div className="container">
-            <div className="loading-page">
-              <div
-                className="loading-spinner"
-                style={{ width: 40, height: 40, borderWidth: 4 }}
-              />
-              <p style={{ color: 'var(--color-text-light)', marginTop: 12 }}>
-                جاري تحميل المنتج...
-              </p>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  // ── Product not found ──
-  if (!product) {
-    return (
-      <>
-        <Navbar />
-        <main className="product-detail">
-          <div className="container">
-            <div className="empty-state">
-              <div className="empty-state-icon">🔍</div>
-              <h3 className="empty-state-title">المنتج غير موجود</h3>
-              <p>يبدو أن هذا المنتج غير متوفر أو تم حذفه.</p>
-              <Link
-                href="/shop"
-                className="btn btn-primary btn-lg"
-                style={{ marginTop: 24, display: 'inline-flex' }}
-              >
-                العودة للمتجر
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  // Helper to render video player or iframe for all platforms
-  const renderVideoPlayer = (url: string) => {
-    if (!url) return null;
-    const cleanUrl = url.trim();
-
-    const isDirectVideo =
-      cleanUrl.endsWith('.mp4') ||
-      cleanUrl.endsWith('.webm') ||
-      cleanUrl.endsWith('.mov') ||
-      cleanUrl.endsWith('.m4v') ||
-      cleanUrl.includes('blob:') ||
-      cleanUrl.includes('data:video');
-
-    if (isDirectVideo) {
-      return (
-        <video
-          src={cleanUrl}
-          controls
-          playsInline
-          style={{
-            width: '100%',
-            maxHeight: '450px',
-            borderRadius: '12px',
-            background: '#000',
-          }}
-        />
-      );
-    }
-
-    // Embed for YouTube / YouTube Shorts
-    let embedUrl = cleanUrl;
-    if (cleanUrl.includes('youtube.com/shorts/')) {
-      const id = cleanUrl.split('youtube.com/shorts/')[1]?.split('?')[0];
-      embedUrl = `https://www.youtube.com/embed/${id}`;
-    } else if (cleanUrl.includes('youtube.com/watch?v=')) {
-      embedUrl = cleanUrl.replace('watch?v=', 'embed/');
-    } else if (cleanUrl.includes('youtu.be/')) {
-      embedUrl = cleanUrl.replace('youtu.be/', 'youtube.com/embed/');
-    } else if (cleanUrl.includes('instagram.com/reel/') || cleanUrl.includes('instagram.com/p/')) {
-      const match = cleanUrl.match(/instagram\.com\/(?:reel|p)\/([^/?#&]+)/);
-      if (match && match[1]) {
-        embedUrl = `https://www.instagram.com/p/${match[1]}/embed/`;
-      }
-    } else if (cleanUrl.includes('streamable.com/')) {
-      const id = cleanUrl.split('streamable.com/')[1]?.split('?')[0];
-      embedUrl = `https://streamable.com/e/${id}`;
-    } else if (cleanUrl.includes('drive.google.com/file/d/')) {
-      const id = cleanUrl.split('/d/')[1]?.split('/')[0];
-      embedUrl = `https://drive.google.com/file/d/${id}/preview`;
-    }
-
-    return (
-      <div
-        style={{
-          position: 'relative',
-          paddingBottom: '56.25%',
-          height: 0,
-          overflow: 'hidden',
-          borderRadius: '12px',
-          background: '#000',
-        }}
-      >
-        <iframe
-          src={embedUrl}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            borderRadius: '12px',
-          }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    );
-  };
+  // Lightweight categories query for Navbar so it loads instantly
+  const categories = await prisma.category.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: 'asc' },
+  }).catch(() => []);
 
   return (
     <>
-      <Navbar />
+      {/* Pass categories to Navbar to avoid client-side API roundtrip on load */}
+      <Navbar initialCategories={categories} />
 
       <main className="product-detail">
         <div className="container">
-          {/* Breadcrumb */}
-          <div className="breadcrumb">
-            <Link href="/">الرئيسية</Link>
-            <span className="breadcrumb-separator">/</span>
-            <Link href="/shop">المتجر</Link>
-            <span className="breadcrumb-separator">/</span>
-            <span>{product.name}</span>
-          </div>
-
-          <div className="product-detail-grid">
-            {/* Multi-Image & Video Gallery */}
-            <div className="product-gallery">
-              <div
-                className="product-gallery-main"
-                style={{ position: 'relative', overflow: 'hidden', minHeight: '400px', background: '#f5efe9' }}
-              >
-                {showVideoMain && product.videoUrl ? (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#000', padding: '8px', minHeight: '450px' }}>
-                    {renderVideoPlayer(product.videoUrl)}
-                    <button
-                      onClick={() => setShowVideoMain(false)}
-                      className="btn btn-outline btn-sm"
-                      style={{ marginTop: '12px', background: 'rgba(255,255,255,0.9)', color: '#222' }}
-                    >
-                      ← العودة لصور المنتج 📷
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <Image
-                      src={currentImage}
-                      alt={product.name}
-                      width={600}
-                      height={800}
-                      style={{
-                        objectFit: 'cover',
-                        width: '100%',
-                        height: '100%',
-                        transition: 'opacity 0.2s ease',
-                      }}
-                      priority
-                    />
-
-                    {/* Multiple Images Navigation Arrows */}
-                    {imagesList.length > 1 && (
-                      <>
-                        <button
-                          onClick={handlePrevImage}
-                          title="الصورة السابقة"
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            right: '12px',
-                            transform: 'translateY(-50%)',
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            background: 'rgba(255, 255, 255, 0.85)',
-                            color: 'var(--color-primary-dark)',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '20px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                            zIndex: 2,
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          ›
-                        </button>
-                        <button
-                          onClick={handleNextImage}
-                          title="الصورة التالية"
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '12px',
-                            transform: 'translateY(-50%)',
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            background: 'rgba(255, 255, 255, 0.85)',
-                            color: 'var(--color-primary-dark)',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '20px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                            zIndex: 2,
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          ‹
-                        </button>
-
-                        {/* Image Counter Badge */}
-                        <span
-                          style={{
-                            position: 'absolute',
-                            bottom: '12px',
-                            left: '12px',
-                            background: 'rgba(0, 0, 0, 0.65)',
-                            color: 'white',
-                            padding: '4px 10px',
-                            borderRadius: 'var(--radius-full)',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            zIndex: 2,
-                            backdropFilter: 'blur(4px)',
-                          }}
-                        >
-                          {currentImageIndex + 1} / {imagesList.length} 📷
-                        </span>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Thumbnails row (Images + Video thumbnail) */}
-              <div
-                className="product-gallery-thumbs"
-                style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}
-              >
-                {imagesList.map((imgUrl, idx) => (
-                  <div
-                    key={idx}
-                    className={`product-gallery-thumb ${
-                      !showVideoMain && currentImageIndex === idx ? 'active' : ''
-                    }`}
-                    onClick={() => {
-                      setShowVideoMain(false);
-                      setCurrentImageIndex(idx);
-                    }}
-                    style={{
-                      position: 'relative',
-                      width: '72px',
-                      height: '72px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      border:
-                        !showVideoMain && currentImageIndex === idx
-                          ? '2px solid var(--color-primary)'
-                          : '2px solid transparent',
-                      opacity: !showVideoMain && currentImageIndex === idx ? 1 : 0.65,
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <Image
-                      src={imgUrl}
-                      alt={`صورة مصغرة ${idx + 1}`}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
-                  </div>
-                ))}
-
-                {/* Video thumbnail if available */}
-                {product.videoUrl && (
-                  <div
-                    className={`product-gallery-thumb ${showVideoMain ? 'active' : ''}`}
-                    onClick={() => setShowVideoMain(true)}
-                    style={{
-                      position: 'relative',
-                      width: '72px',
-                      height: '72px',
-                      borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #1B263B 0%, #3D3029 100%)',
-                      color: 'white',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      border: showVideoMain
-                        ? '2px solid var(--color-primary)'
-                        : '2px solid transparent',
-                      opacity: showVideoMain ? 1 : 0.75,
-                      transition: 'all 0.2s ease',
-                      gap: '2px',
-                    }}
-                  >
-                    <span style={{ fontSize: '20px' }}>🎬</span>
-                    <span style={{ fontSize: '10px', fontWeight: 700 }}>فيديو</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Product Details & Actions */}
-            <div className="product-info">
-              <h1 className="product-info-title">{product.name}</h1>
-
-              <div className="product-info-price">
-                {product.discountPrice ? (
-                  <>
-                    <span className="current">{product.discountPrice} ج.م</span>
-                    <span className="original">{product.price} ج.م</span>
-                    <span className="discount-badge">
-                      وفّري {product.price - product.discountPrice} ج.م
-                    </span>
-                  </>
-                ) : (
-                  <span className="current">{product.price} ج.م</span>
-                )}
-              </div>
-
-              <p className="product-info-description">{product.description}</p>
-
-              {/* 🎨 Luxury Color Selection (الألوان المتاحة المحددة من الأدمن) */}
-              {availableColors.length > 0 && (
-                <div className="product-options" style={{ marginBottom: '22px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '10px',
-                    }}
-                  >
-                    <span className="product-option-label" style={{ marginBottom: 0, fontSize: '15px' }}>
-                      اللون المختار:{' '}
-                      <strong
-                        style={{
-                          color: 'var(--color-primary-dark)',
-                          fontWeight: 800,
-                          fontSize: '15px',
-                        }}
-                      >
-                        {selectedColor || availableColors[0]?.color}
-                      </strong>
-                    </span>
-                    <span style={{ fontSize: '12px', color: 'var(--color-text-light)' }}>
-                      (متوفر {availableColors.length} {availableColors.length === 1 ? 'لون' : 'ألوان'})
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    {availableColors.map((c) => {
-                      const isSelected =
-                        selectedColor === c.color ||
-                        (!selectedColor && c.color === availableColors[0]?.color);
-                      const isLight =
-                        c.colorHex.toLowerCase() === '#ffffff' ||
-                        c.colorHex.toLowerCase() === '#fff' ||
-                        c.color === 'أبيض';
-
-                      return (
-                        <button
-                          key={c.color}
-                          type="button"
-                          onClick={() => handleSelectColor(c.color)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 16px',
-                            borderRadius: 'var(--radius-full)',
-                            border: isSelected
-                              ? '2px solid var(--color-primary)'
-                              : '1px solid var(--color-border)',
-                            background: isSelected ? 'var(--color-surface)' : 'white',
-                            color: isSelected
-                              ? 'var(--color-primary-dark)'
-                              : 'var(--color-text)',
-                            fontWeight: isSelected ? 700 : 500,
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            boxShadow: isSelected
-                              ? '0 3px 10px rgba(155, 123, 107, 0.25)'
-                              : '0 1px 3px rgba(0,0,0,0.05)',
-                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                            transform: isSelected ? 'scale(1.04)' : 'scale(1)',
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: '20px',
-                              height: '20px',
-                              borderRadius: '50%',
-                              backgroundColor: c.colorHex,
-                              border: isLight
-                                ? '1px solid #ccc'
-                                : '1px solid rgba(0,0,0,0.15)',
-                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)',
-                              display: 'inline-block',
-                            }}
-                          />
-                          <span>{c.color}</span>
-                          {isSelected && (
-                            <span
-                              style={{
-                                color: 'var(--color-primary)',
-                                fontSize: '14px',
-                                fontWeight: 800,
-                              }}
-                            >
-                              ✓
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* 📏 Sizes Selection (المقاسات) */}
-              {availableSizes.length > 0 && (
-                <div className="product-options" style={{ marginBottom: '22px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '10px',
-                    }}
-                  >
-                    <span className="product-option-label" style={{ marginBottom: 0, fontSize: '15px' }}>
-                      المقاس:{' '}
-                      <strong
-                        style={{
-                          color: 'var(--color-primary-dark)',
-                          fontWeight: 800,
-                        }}
-                      >
-                        {selectedSize || availableSizes[0]}
-                      </strong>
-                    </span>
-                    <button
-                      className="size-guide-link"
-                      onClick={() => setSizeGuideOpen(true)}
-                      style={{
-                        fontSize: '13px',
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--color-primary)',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        fontWeight: 600,
-                      }}
-                    >
-                      📐 دليل المقاسات
-                    </button>
-                  </div>
-
-                  <div
-                    className="size-options"
-                    style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
-                  >
-                    {availableSizes.map((sz) => {
-                      const isSelected =
-                        selectedSize === sz ||
-                        (!selectedSize && sz === availableSizes[0]);
-                      return (
-                        <button
-                          key={sz}
-                          type="button"
-                          className={`size-btn ${isSelected ? 'active' : ''}`}
-                          onClick={() => handleSelectSize(sz)}
-                          style={{
-                            minWidth: '55px',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: isSelected
-                              ? '2px solid var(--color-primary)'
-                              : '1px solid var(--color-border)',
-                            background: isSelected ? 'var(--color-primary)' : 'white',
-                            color: isSelected ? 'white' : 'var(--color-text)',
-                            fontWeight: isSelected ? 700 : 500,
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {sz}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Stock Status */}
-              <div className="stock-status in-stock">
-                <span className="status-dot"></span>
-                <span>متوفر في المخزون (جاهز للشحن الفوري)</span>
-              </div>
-
-              {/* Quantity */}
-              <div className="product-options">
-                <span className="product-option-label">الكمية:</span>
-                <div className="quantity-selector">
-                  <button
-                    className="quantity-btn"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    -
-                  </button>
-                  <span className="quantity-value">{quantity}</span>
-                  <button
-                    className="quantity-btn"
-                    onClick={() => setQuantity(quantity + 1)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="product-actions">
-                <button
-                  className="btn btn-primary btn-lg"
-                  onClick={() => handleAddToCart(false)}
-                >
-                  أضيفي للسلة 🛒
-                </button>
-                <button
-                  className="btn btn-outline btn-lg"
-                  onClick={() => handleAddToCart(true)}
-                >
-                  اشتري الآن ⚡
-                </button>
-              </div>
-
-              {/* Product Spec Tabs & Video */}
-              <div className="product-tabs">
-                <div className="product-tabs-nav">
-                  <button
-                    className={`product-tab-btn ${
-                      activeTab === 'details' ? 'active' : ''
-                    }`}
-                    onClick={() => setActiveTab('details')}
-                  >
-                    مواصفات القطعة
-                  </button>
-                  <button
-                    className={`product-tab-btn ${
-                      activeTab === 'care' ? 'active' : ''
-                    }`}
-                    onClick={() => setActiveTab('care')}
-                  >
-                    تعليمات العناية
-                  </button>
-                  {product.videoUrl && (
-                    <button
-                      className={`product-tab-btn ${
-                        activeTab === 'video' ? 'active' : ''
-                      }`}
-                      onClick={() => setActiveTab('video')}
-                    >
-                      فيديو المنتج 🎬
-                    </button>
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    paddingBlock: '12px',
-                    fontSize: '14px',
-                    lineHeight: '1.8',
-                  }}
-                >
-                  {activeTab === 'details' && (
-                    <ul>
-                      <li>
-                        • <strong>نوع القماش:</strong>{' '}
-                        {product.material || 'قطن خفيف ومريح'}
-                      </li>
-                      <li>
-                        • <strong>القصّة:</strong>{' '}
-                        {product.fit || 'فضفاض ومريح (Oversized)'}
-                      </li>
-                      <li>
-                        • <strong>التطريز والجودة:</strong> خياطة دقيقة متينة
-                        تدوم مع الغسيل المتكرر
-                      </li>
-                    </ul>
-                  )}
-
-                  {activeTab === 'care' && (
-                    <p>
-                      {product.careInstructions ||
-                        'يُفضل الغسيل بماء بارد وتجنب استخدام المبيضات للحفاظ على رونق الألوان.'}
-                    </p>
-                  )}
-
-                  {activeTab === 'video' && product.videoUrl && (
-                    <div style={{ marginTop: '8px' }}>
-                      {renderVideoPlayer(product.videoUrl)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Similar Products */}
-          {similarProducts.length > 0 && (
-            <div className="section" style={{ marginTop: '60px' }}>
-              <h2 className="section-title">قد يعجبكِ أيضاً</h2>
-              <div className="products-grid" style={{ marginTop: '24px' }}>
-                {similarProducts.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            </div>
-          )}
+          <Suspense fallback={<ProductSkeleton />}>
+            <ProductDataWrapper params={params} />
+          </Suspense>
         </div>
       </main>
 
-      <SizeGuide
-        isOpen={sizeGuideOpen}
-        onClose={() => setSizeGuideOpen(false)}
-      />
       <Footer />
     </>
+  );
+}
+
+// ── SERVER DATA WRAPPER: Executes database queries inside Suspense ──
+async function ProductDataWrapper({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const resolvedParams = await params;
+  const productId = Number(resolvedParams.id);
+
+  if (isNaN(productId)) {
+    notFound();
+  }
+
+  // Fetch product data
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      category: true,
+      images: true,
+      variants: true,
+    },
+  });
+
+  if (!product) {
+    notFound();
+  }
+
+  // Fetch up to 3 similar products in the same category
+  const similarProducts = await prisma.product.findMany({
+    where: {
+      categoryId: product.categoryId,
+      id: { not: productId },
+    },
+    include: {
+      images: true,
+      variants: true,
+    },
+    take: 3,
+  });
+
+  // Serialize product and similar products
+  const serializedProduct = {
+    ...product,
+    createdAt: product.createdAt.toISOString(),
+    category: product.category ? {
+      id: product.category.id,
+      name: product.category.name,
+      image: product.category.image,
+    } : undefined,
+    images: product.images.map((img) => ({
+      id: img.id,
+      productId: img.productId,
+      imageUrl: img.imageUrl,
+    })),
+    variants: product.variants.map((v) => ({
+      id: v.id,
+      productId: v.productId,
+      size: v.size,
+      color: v.color,
+      colorHex: v.colorHex,
+      stock: v.stock,
+    })),
+  };
+
+  const serializedSimilarProducts = similarProducts.map((p) => ({
+    ...p,
+    createdAt: p.createdAt.toISOString(),
+    images: p.images.map((img) => ({
+      id: img.id,
+      productId: img.productId,
+      imageUrl: img.imageUrl,
+    })),
+    variants: p.variants.map((v) => ({
+      id: v.id,
+      productId: v.productId,
+      size: v.size,
+      color: v.color,
+      colorHex: v.colorHex,
+      stock: v.stock,
+    })),
+  }));
+
+  return (
+    <>
+      {/* Breadcrumb */}
+      <div className="breadcrumb">
+        <span>الرئيسية</span>
+        <span className="breadcrumb-separator">/</span>
+        <span>المتجر</span>
+        <span className="breadcrumb-separator">/</span>
+        <span>{serializedProduct.name}</span>
+      </div>
+
+      {/* Interactive Client Gallery & Selection Section */}
+      <ProductDetailClient product={serializedProduct} />
+
+      {/* Similar Products */}
+      {serializedSimilarProducts.length > 0 && (
+        <div className="section" style={{ marginTop: '60px' }}>
+          <h2 className="section-title">قد يعجبكِ أيضاً</h2>
+          <div className="products-grid" style={{ marginTop: '24px' }}>
+            {serializedSimilarProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── SKELETON LOADER FOR PRODUCT DETAIL PAGE ──
+function ProductSkeleton() {
+  return (
+    <div style={{ paddingBlock: '12px' }}>
+      {/* Breadcrumb Skeleton */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+        <div className="shimmer-skeleton" style={{ height: '16px', width: '60px', borderRadius: '4px' }} />
+        <span style={{ color: '#ccc' }}>/</span>
+        <div className="shimmer-skeleton" style={{ height: '16px', width: '50px', borderRadius: '4px' }} />
+        <span style={{ color: '#ccc' }}>/</span>
+        <div className="shimmer-skeleton" style={{ height: '16px', width: '120px', borderRadius: '4px' }} />
+      </div>
+
+      <div className="product-detail-grid">
+        {/* Gallery Image Skeleton */}
+        <div className="product-gallery">
+          <div
+            className="shimmer-skeleton"
+            style={{
+              width: '100%',
+              minHeight: '450px',
+              borderRadius: '12px',
+            }}
+          />
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="shimmer-skeleton"
+                style={{ width: '72px', height: '72px', borderRadius: '8px' }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Details Spec Skeleton */}
+        <div className="product-info">
+          {/* Title */}
+          <div
+            className="shimmer-skeleton"
+            style={{ height: '36px', width: '80%', marginBottom: '14px', borderRadius: '6px' }}
+          />
+
+          {/* Price */}
+          <div
+            className="shimmer-skeleton"
+            style={{ height: '28px', width: '30%', marginBottom: '18px', borderRadius: '6px' }}
+          />
+
+          {/* Description */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+            <div className="shimmer-skeleton" style={{ height: '16px', width: '100%', borderRadius: '4px' }} />
+            <div className="shimmer-skeleton" style={{ height: '16px', width: '95%', borderRadius: '4px' }} />
+            <div className="shimmer-skeleton" style={{ height: '16px', width: '70%', borderRadius: '4px' }} />
+          </div>
+
+          {/* Color Option placeholder */}
+          <div style={{ marginBottom: '20px' }}>
+            <div className="shimmer-skeleton" style={{ height: '16px', width: '90px', marginBottom: '8px', borderRadius: '4px' }} />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="shimmer-skeleton"
+                  style={{ height: '36px', width: '90px', borderRadius: '20px' }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Size Option placeholder */}
+          <div style={{ marginBottom: '20px' }}>
+            <div className="shimmer-skeleton" style={{ height: '16px', width: '70px', marginBottom: '8px', borderRadius: '4px' }} />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="shimmer-skeleton"
+                  style={{ height: '36px', width: '55px', borderRadius: '8px' }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '12px', marginTop: '28px', flexWrap: 'wrap' }}>
+            <div className="shimmer-skeleton" style={{ height: '48px', flex: 1, minWidth: '150px', borderRadius: '8px' }} />
+            <div className="shimmer-skeleton" style={{ height: '48px', flex: 1, minWidth: '150px', borderRadius: '8px' }} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

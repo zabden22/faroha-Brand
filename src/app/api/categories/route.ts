@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,11 @@ export async function POST(request: Request) {
         image: body.image || '/images/category_dresses.jpg',
       },
     });
+
+    // Trigger static page cache revalidation
+    revalidatePath('/');
+    revalidatePath('/shop');
+
     return NextResponse.json(category, { status: 201 });
   } catch (error) {
     console.error('Error creating category:', error);

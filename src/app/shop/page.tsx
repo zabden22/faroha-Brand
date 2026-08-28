@@ -1,211 +1,195 @@
-'use client';
-
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import ProductCard from '@/components/ProductCard';
-import { Product, Category } from '@/types';
+import ShopContent from '@/components/ShopContent';
+import prisma from '@/lib/prisma';
 
-function ShopContent() {
-  const searchParams = useSearchParams();
-  const catParam = searchParams.get('category');
+// Enable ISR (Incremental Static Regeneration)
+// Cache the shop page statically, revalidate at most once every 60 seconds (or on-demand via revalidatePath)
+export const revalidate = 60;
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | string>('all');
-  const [priceSort, setPriceSort] = useState<'newest' | 'low-to-high' | 'high-to-low'>('newest');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSize, setSelectedSize] = useState<string | 'all'>('all');
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [catsRes, prodsRes] = await Promise.all([
-          fetch('/api/categories', { cache: 'no-store' }),
-          fetch('/api/products', { cache: 'no-store' }),
-        ]);
-        const [cats, prods] = await Promise.all([
-          catsRes.json(),
-          prodsRes.json(),
-        ]);
-        if (Array.isArray(cats)) setCategories(cats);
-        if (Array.isArray(prods)) setProducts(prods);
-      } catch (e) {
-        console.error('Error loading shop data:', e);
-      }
-    };
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (catParam) {
-      if (catParam === 'esdals') {
-        const found = categories.find((c) => c.name.includes('إسدال'));
-        if (found) setSelectedCategory(found.id);
-      } else if (!isNaN(Number(catParam))) {
-        setSelectedCategory(Number(catParam));
-      }
-    }
-  }, [catParam, categories]);
-
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter((product) => {
-        // Category filter
-        if (
-          selectedCategory !== 'all' &&
-          Number(product.categoryId) !== Number(selectedCategory)
-        ) {
-          return false;
-        }
-        // Size filter
-        if (selectedSize !== 'all') {
-          const hasSize = product.variants?.some((v) => v.size === selectedSize);
-          if (!hasSize) return false;
-        }
-        // Search filter
-        if (searchQuery.trim() !== '') {
-          const query = searchQuery.toLowerCase();
-          const matchesName = product.name.toLowerCase().includes(query);
-          const matchesDesc = product.description.toLowerCase().includes(query);
-          if (!matchesName && !matchesDesc) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        const priceA = a.discountPrice || a.price;
-        const priceB = b.discountPrice || b.price;
-        if (priceSort === 'low-to-high') return priceA - priceB;
-        if (priceSort === 'high-to-low') return priceB - priceA;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-  }, [products, selectedCategory, priceSort, searchQuery, selectedSize]);
+export default async function ShopPage() {
+  // Lightweight query for Navbar categories so it renders immediately without blocking page stream
+  const categories = await prisma.category.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: 'asc' },
+  }).catch(() => []);
 
   return (
-    <div className="container" style={{ paddingBlock: 'var(--space-2xl)' }}>
-      {/* Header & Controls */}
-      <div className="shop-header">
-        <div>
-          <h1 className="section-title">المتجر 🌸</h1>
-          <p className="shop-results">عرض {filteredProducts.length} من أصل {products.length} منتج</p>
-        </div>
+    <>
+      {/* Pass categories to Navbar to avoid client-side API roundtrip on load */}
+      <Navbar initialCategories={categories} />
+      
+      <main className="shop-page">
+        <Suspense fallback={<ShopSkeleton />}>
+          <ShopDataWrapper />
+        </Suspense>
+      </main>
 
-        <div className="shop-sort">
-          <label htmlFor="sort-select" style={{ fontSize: '14px', fontWeight: 500 }}>
-            ترتيب حسب:
-          </label>
-          <select
-            id="sort-select"
-            value={priceSort}
-            onChange={(e: any) => setPriceSort(e.target.value)}
-          >
-            <option value="newest">الأحدث وصولاً</option>
-            <option value="low-to-high">السعر: من الأقل للأعلى</option>
-            <option value="high-to-low">السعر: من الأعلى للأقل</option>
-          </select>
+      <Footer />
+    </>
+  );
+}
+
+// ── SERVER DATA WRAPPER: Executes database queries inside Suspense ──
+async function ShopDataWrapper() {
+  const [categories, products] = await Promise.all([
+    prisma.category.findMany({
+      include: { _count: { select: { products: true } } },
+      orderBy: { id: 'asc' },
+    }),
+    prisma.product.findMany({
+      include: {
+        category: true,
+        images: true,
+        variants: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  // Serialize models to plain JSON objects (converting Date to ISOString) to satisfy Next.js page prop serialization
+  const serializedCategories = categories.map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    image: cat.image,
+    _count: cat._count,
+  }));
+
+  const serializedProducts = products.map((prod) => ({
+    ...prod,
+    createdAt: prod.createdAt.toISOString(),
+    category: prod.category ? {
+      id: prod.category.id,
+      name: prod.category.name,
+      image: prod.category.image,
+    } : undefined,
+    images: prod.images.map((img) => ({
+      id: img.id,
+      productId: img.productId,
+      imageUrl: img.imageUrl,
+    })),
+    variants: prod.variants.map((v) => ({
+      id: v.id,
+      productId: v.productId,
+      size: v.size,
+      color: v.color,
+      colorHex: v.colorHex,
+      stock: v.stock,
+    })),
+  }));
+
+  return (
+    <ShopContent
+      initialProducts={serializedProducts}
+      initialCategories={serializedCategories}
+    />
+  );
+}
+
+// ── SKELETON LOADER FOR SHOP PAGE ──
+function ShopSkeleton() {
+  return (
+    <div className="container" style={{ paddingBlock: 'var(--space-2xl)' }}>
+      {/* Header Skeleton */}
+      <div className="shop-header" style={{ marginBottom: '32px' }}>
+        <div>
+          <div
+            className="shimmer-skeleton"
+            style={{ height: '32px', width: '150px', marginBottom: '8px', borderRadius: '6px' }}
+          />
+          <div
+            className="shimmer-skeleton"
+            style={{ height: '18px', width: '100px', borderRadius: '4px' }}
+          />
         </div>
+        <div
+          className="shimmer-skeleton"
+          style={{ height: '38px', width: '200px', borderRadius: '8px' }}
+        />
       </div>
 
       <div className="shop-layout">
-        {/* Sidebar Filters */}
+        {/* Sidebar Filters Skeleton */}
         <aside className="shop-filters">
-          {/* Search */}
           <div className="filter-group">
-            <h3 className="filter-title">بحث في المتجر</h3>
-            <input
-              type="text"
-              placeholder="ابحثي عن فستان، إسدال..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input"
+            <div
+              className="shimmer-skeleton"
+              style={{ height: '20px', width: '100px', marginBottom: '12px', borderRadius: '4px' }}
+            />
+            <div
+              className="shimmer-skeleton"
+              style={{ height: '42px', width: '100%', borderRadius: '8px' }}
             />
           </div>
 
-          {/* Dynamic Categories */}
           <div className="filter-group">
-            <h3 className="filter-title">الأقسام</h3>
-            <div className="filter-options">
-              <button
-                className={`filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('all')}
-              >
-                جميع الأقسام ({products.length})
-              </button>
-              {categories.map((cat) => {
-                const count = products.filter((p) => Number(p.categoryId) === Number(cat.id)).length;
-                return (
-                  <button
-                    key={cat.id}
-                    className={`filter-btn ${Number(selectedCategory) === Number(cat.id) ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(cat.id)}
-                  >
-                    {cat.name} ({count})
-                  </button>
-                );
-              })}
+            <div
+              className="shimmer-skeleton"
+              style={{ height: '20px', width: '80px', marginBottom: '12px', borderRadius: '4px' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="shimmer-skeleton"
+                  style={{ height: '36px', width: '100%', borderRadius: '6px' }}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Sizes */}
           <div className="filter-group">
-            <h3 className="filter-title">المقاس</h3>
-            <div className="filter-options" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: '8px' }}>
-              {['all', 'M', 'L', 'XL', 'XXL'].map((sz) => (
-                <button
-                  key={sz}
-                  className={`btn btn-sm ${selectedSize === sz ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => setSelectedSize(sz)}
-                >
-                  {sz === 'all' ? 'الكل' : sz}
-                </button>
+            <div
+              className="shimmer-skeleton"
+              style={{ height: '20px', width: '60px', marginBottom: '12px', borderRadius: '4px' }}
+            />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="shimmer-skeleton"
+                  style={{ height: '32px', width: '45px', borderRadius: '6px' }}
+                />
               ))}
             </div>
           </div>
         </aside>
 
-        {/* Product Catalog Grid */}
+        {/* Product Catalog Grid Skeleton */}
         <div style={{ flex: 1 }}>
-          {filteredProducts.length > 0 ? (
-            <div className="products-grid">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">🔍</div>
-              <h3 className="empty-state-title">لا توجد نتائج مطابقة لفلترتكِ</h3>
-              <p>جربي الفلترة بقسم آخر أو البحث عن كلمة رئيسية أخرى.</p>
-              <button
-                className="btn btn-outline"
-                style={{ marginTop: '16px' }}
-                onClick={() => {
-                  setSelectedCategory('all');
-                  setSearchQuery('');
-                  setSelectedSize('all');
+          <div className="products-grid">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: 'var(--color-bg-card)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-border-light)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                إعادة ضبط الفلاتر
-              </button>
-            </div>
-          )}
+                <div
+                  className="shimmer-skeleton"
+                  style={{ aspectRatio: '3/4', width: '100%' }}
+                />
+                <div style={{ padding: '16px', flex: 1 }}>
+                  <div
+                    className="shimmer-skeleton"
+                    style={{ height: '18px', width: '80%', marginBottom: '10px', borderRadius: '4px' }}
+                  />
+                  <div
+                    className="shimmer-skeleton"
+                    style={{ height: '14px', width: '35%', borderRadius: '4px' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function ShopPage() {
-  return (
-    <>
-      <Navbar />
-      <main className="shop-page">
-        <Suspense fallback={<div className="container" style={{ padding: '60px', textAlign: 'center' }}>جاري تحميل المتجر...</div>}>
-          <ShopContent />
-        </Suspense>
-      </main>
-      <Footer />
-    </>
   );
 }

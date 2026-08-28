@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,10 @@ export async function POST(request: Request) {
         variants: true,
       },
     });
+
+    // Trigger static page cache revalidation for updated listing pages
+    revalidatePath('/');
+    revalidatePath('/shop');
 
     return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
