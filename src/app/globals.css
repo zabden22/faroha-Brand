@@ -22,6 +22,7 @@
   --color-bg-alt: #F2EBE3;
   --color-bg-card: #FFFFFF;
   --color-bg-warm: #EDE4DA;
+  --color-surface: #FFFFFF;
 
   /* Text */
   --color-text: #3D3029;
@@ -472,16 +473,18 @@ ul, ol {
   position: fixed;
   top: 0;
   right: 0;
-  width: 280px;
+  width: 300px;
   max-width: 85vw;
   height: 100vh;
-  background: var(--color-surface);
+  background: #FAF6F2;
   z-index: 1200;
   transform: translateX(100%);
-  transition: transform var(--transition-slow) ease;
-  padding: var(--space-lg);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 20px;
   overflow-y: auto;
-  box-shadow: var(--shadow-xl);
+  box-shadow: -6px 0 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
 }
 
 .mobile-menu.open {
@@ -2039,31 +2042,60 @@ ul, ol {
     --navbar-height: 60px;
   }
 
-  .navbar-links {
-    display: none;
-  }
-
-  .mobile-menu-btn {
-    display: flex;
-  }
-
-  /* --- Mobile Navbar: Logo centered, actions right, hamburger left --- */
   .navbar-inner {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding-inline: 12px;
+  }
+
+  .navbar-links {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: var(--color-text);
+    z-index: 2;
   }
 
   .navbar-logo {
     position: absolute;
     left: 50%;
-    transform: translateX(-50%);
-    padding: 4px 8px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    z-index: 1;
   }
 
   .navbar-logo img {
     height: 40px !important;
+    width: auto !important;
+  }
+
+  .navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 2;
+  }
+
+  .navbar-actions .btn-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .navbar-admin-btn {
+    display: none;
   }
 
   /* --- Hero mobile --- */

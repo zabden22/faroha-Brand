@@ -61,7 +61,21 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
     <>
       <header className="navbar">
         <div className="navbar-inner">
-          {/* Brand Logo */}
+          {/* Mobile Hamburger Button (Placed on Start / Right in RTL) */}
+          <button
+            className="btn-icon mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="القائمة الرئيسية"
+            title="القائمة"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
+          {/* Brand Logo (Centered on mobile, Start on desktop) */}
           <Link href="/" className="navbar-logo">
             <Image
               src="/images/logo.png"
@@ -70,7 +84,7 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
               height={60}
               style={{
                 objectFit: 'contain',
-                height: '50px',
+                height: '46px',
                 width: 'auto',
                 borderRadius: '6px',
               }}
@@ -78,7 +92,7 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
             />
           </Link>
 
-          {/* Nav Links (Desktop) */}
+          {/* Nav Links (Desktop Only) */}
           <nav className="navbar-links">
             <Link href="/" className={pathname === '/' ? 'active' : ''}>
               الرئيسية
@@ -120,7 +134,7 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
             </Link>
           </nav>
 
-          {/* Action Buttons */}
+          {/* Action Buttons (Search, Cart, and Admin) */}
           <div className="navbar-actions">
             {/* Search link */}
             <Link href="/shop" className="btn-icon" title="بحث في المتجر">
@@ -130,7 +144,7 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
               </svg>
             </Link>
 
-            {/* Cart Link */}
+            {/* Cart Link with Badge */}
             <Link href="/cart" className="btn-icon cart-badge" title="سلة التسوق">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
@@ -140,26 +154,13 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
               {cartCount > 0 && <span className="cart-badge-count">{cartCount}</span>}
             </Link>
 
-            {/* Admin / Profile Link */}
-            <Link href="/admin/login" className="btn-icon" title="دخول الإدارة / الحساب">
+            {/* Admin / Profile Link (Desktop) */}
+            <Link href="/admin/login" className="btn-icon navbar-admin-btn" title="دخول الإدارة / الحساب">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </Link>
-
-            {/* Mobile Hamburger Button */}
-            <button
-              className="btn-icon mobile-menu-btn"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="القائمة"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="4" x2="20" y1="12" y2="12" />
-                <line x1="4" x2="20" y1="6" y2="6" />
-                <line x1="4" x2="20" y1="18" y2="18" />
-              </svg>
-            </button>
           </div>
         </div>
       </header>
@@ -173,10 +174,21 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
       {/* Mobile Menu Drawer */}
       <aside className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="mobile-menu-header">
-          <Link href="/" className="navbar-logo" onClick={() => setMobileMenuOpen(false)}>
-            FarOha<span>_Brand</span>
+          <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <Image
+              src="/images/logo.png"
+              alt="FarOha Brand Logo"
+              width={140}
+              height={45}
+              style={{
+                objectFit: 'contain',
+                height: '38px',
+                width: 'auto',
+                borderRadius: '4px',
+              }}
+            />
           </Link>
-          <button className="modal-close" onClick={() => setMobileMenuOpen(false)}>
+          <button className="modal-close" onClick={() => setMobileMenuOpen(false)} aria-label="إغلاق القائمة">
             ✕
           </button>
         </div>
@@ -219,6 +231,21 @@ export default function Navbar({ initialCategories }: NavbarProps = {}) {
               {link.label}
             </Link>
           ))}
+
+          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--color-border)' }}>
+            <Link
+              href="/admin/login"
+              className="btn btn-outline btn-sm"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ width: '100%', justifyContent: 'center', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              دخول الإدارة
+            </Link>
+          </div>
         </nav>
       </aside>
     </>
