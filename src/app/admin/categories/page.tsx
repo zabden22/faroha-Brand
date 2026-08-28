@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Category } from '@/types';
+import { TagIcon, EditIcon, TrashIcon, PlusIcon, RefreshIcon } from '@/components/Icons';
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -13,9 +14,10 @@ export default function AdminCategoriesPage() {
 
   const loadCategories = async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/categories', { cache: 'no-store' });
       const data = await res.json();
-      setCategories(data);
+      if (Array.isArray(data)) setCategories(data);
     } catch (e) {
       console.error('Error loading categories:', e);
     } finally {
@@ -56,7 +58,7 @@ export default function AdminCategoriesPage() {
         setNewCatName('');
         setNewCatImage('/images/category_dresses.jpg');
         await loadCategories();
-        alert('تمت إضافة القسم وحفظه في قاعدة البيانات بنجاح! 🎉');
+        alert('تمت إضافة القسم وحفظه في قاعدة البيانات بنجاح!');
       }
     } catch (e) {
       alert('حدث خطأ أثناء الإضافة');
@@ -76,7 +78,7 @@ export default function AdminCategoriesPage() {
       if (res.ok) {
         setEditingCategory(null);
         await loadCategories();
-        alert('تم حفظ التعديلات بنجاح! ✨');
+        alert('تم حفظ التعديلات بنجاح!');
       }
     } catch (e) {
       alert('حدث خطأ أثناء التعديل');
@@ -90,20 +92,37 @@ export default function AdminCategoriesPage() {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
       if (res.ok) {
         await loadCategories();
-        alert('تم حذف القسم بنجاح! 🗑️');
+        alert('تم حذف القسم بنجاح!');
       }
     } catch (e) {
       alert('حدث خطأ أثناء الحذف');
     }
   };
 
-  if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>جاري تحميل الأقسام من قاعدة البيانات...</div>;
-  }
-
   return (
     <div>
-      <h1 className="admin-page-title">إدارة الأقسام 🏷️</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h1
+          className="admin-page-title"
+          style={{
+            marginBottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <TagIcon size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة الأقسام
+        </h1>
+        <button
+          onClick={loadCategories}
+          className="btn btn-outline btn-sm"
+          style={{ fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <RefreshIcon size={14} />
+          تحديث
+        </button>
+      </div>
 
       <form onSubmit={handleAddCategory} className="checkout-section" style={{ marginBottom: '24px', maxWidth: '650px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>إضافة قسم جديد للمتجر</h3>
@@ -120,11 +139,11 @@ export default function AdminCategoriesPage() {
               <option value="/images/category_loose.jpg">ملابس واسعة</option>
               <option value="/images/category_new.jpg">تشكيلة جديدة</option>
               <option value="/images/category_offers.jpg">عروض</option>
-              {newCatImage.startsWith('data:') && <option value="custom">صورة مخصصة 📁</option>}
+              {newCatImage.startsWith('data:') && <option value="custom">صورة مخصصة</option>}
             </select>
           </div>
           <div className="form-group full-width">
-            <label className="form-label">أو رفع صورة من جهازك 📁</label>
+            <label className="form-label">أو رفع صورة من جهازك</label>
             <input type="file" accept="image/*" className="form-input" onChange={(e) => handleImageFileUpload(e, false)} />
           </div>
           {newCatImage && (
@@ -134,41 +153,61 @@ export default function AdminCategoriesPage() {
             </div>
           )}
           <div className="form-group full-width" style={{ marginTop: '8px' }}>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>إضافة القسم وحفظه ➕</button>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <PlusIcon size={16} />
+              إضافة القسم وحفظه
+            </button>
           </div>
         </div>
       </form>
 
       <div className="checkout-section">
         <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>الأقسام المتاحة ({categories.length})</h3>
-        <div className="table-responsive">
-          <table className="admin-table">
-            <thead>
-              <tr><th>الصورة</th><th>اسم القسم</th><th>#</th><th>الإجراءات</th></tr>
-            </thead>
-            <tbody>
-              {categories.map((c) => (
-                <tr key={c.id}>
-                  <td><Image src={c.image || '/images/category_dresses.jpg'} alt={c.name} width={45} height={55} style={{ borderRadius: '6px', objectFit: 'cover' }} /></td>
-                  <td style={{ fontWeight: 700 }}>{c.name}</td>
-                  <td>#{c.id}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-outline btn-sm" onClick={() => setEditingCategory(c)}>تعديل ✏️</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id, c.name)}>حذف 🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="shimmer-skeleton" style={{ height: '48px', borderRadius: '6px' }} />
+            ))}
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="admin-table">
+              <thead>
+                <tr><th>الصورة</th><th>اسم القسم</th><th>#</th><th>الإجراءات</th></tr>
+              </thead>
+              <tbody>
+                {categories.map((c) => (
+                  <tr key={c.id}>
+                    <td><Image src={c.image || '/images/category_dresses.jpg'} alt={c.name} width={45} height={55} style={{ borderRadius: '6px', objectFit: 'cover' }} /></td>
+                    <td style={{ fontWeight: 700 }}>{c.name}</td>
+                    <td>#{c.id}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-outline btn-sm" onClick={() => setEditingCategory(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <EditIcon size={14} />
+                          تعديل
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id, c.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <TrashIcon size={14} style={{ color: 'white' }} />
+                          حذف
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {editingCategory && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }} onClick={() => setEditingCategory(null)}>
           <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', maxWidth: '520px', width: '100%', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px' }}>✏️ تعديل القسم</h3>
+            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <EditIcon size={18} />
+              تعديل القسم: {editingCategory.name}
+            </h3>
             <form onSubmit={handleEditCategory} className="form-grid">
               <div className="form-group full-width">
                 <label className="form-label">اسم القسم</label>

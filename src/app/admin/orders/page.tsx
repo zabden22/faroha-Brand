@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Order, OrderStatus, ORDER_STATUS_LABELS } from '@/types';
+import { BagIcon, RefreshIcon } from '@/components/Icons';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -10,9 +11,10 @@ export default function AdminOrdersPage() {
 
   const loadOrders = async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/orders', { cache: 'no-store' });
       const data = await res.json();
-      setOrders(data);
+      if (Array.isArray(data)) setOrders(data);
     } catch (e) {
       console.error('Error loading orders:', e);
     } finally {
@@ -33,7 +35,7 @@ export default function AdminOrdersPage() {
       });
       if (res.ok) {
         await loadOrders();
-        alert('تم تحديث حالة الطلب بنجاح! 📦');
+        alert('تم تحديث حالة الطلب بنجاح!');
       }
     } catch (e) {
       alert('حدث خطأ أثناء تحديث حالة الطلب');
@@ -45,93 +47,144 @@ export default function AdminOrdersPage() {
     return o.status === filterStatus;
   });
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>جاري تحميل الطلبات من قاعدة البيانات...</div>;
-
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <h1 className="admin-page-title" style={{ marginBottom: 0 }}>إدارة الطلبات 📦</h1>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <label style={{ fontSize: '14px', fontWeight: 600 }}>تصفية حسب الحالة:</label>
-          <select
-            className="form-select"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ width: 'auto' }}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <h1
+          className="admin-page-title"
+          style={{
+            marginBottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <BagIcon size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة الطلبات
+        </h1>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            onClick={loadOrders}
+            className="btn btn-outline btn-sm"
+            style={{
+              fontSize: '13px',
+              padding: '6px 12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
           >
-            <option value="all">جميع الطلبات ({orders.length})</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="confirmed">تم التأكيد</option>
-            <option value="preparing">قيد التجهيز</option>
-            <option value="shipped">تم الشحن</option>
-            <option value="delivered">تم التوصيل</option>
-            <option value="cancelled">ملغي</option>
-          </select>
+            <RefreshIcon size={14} />
+            تحديث
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 600 }}>تصفية حسب الحالة:</label>
+            <select
+              className="form-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{ width: 'auto', padding: '6px 12px', fontSize: '13px' }}
+            >
+              <option value="all">جميع الطلبات ({orders.length})</option>
+              <option value="pending">قيد الانتظار</option>
+              <option value="confirmed">تم التأكيد</option>
+              <option value="preparing">قيد التجهيز</option>
+              <option value="shipped">تم الشحن</option>
+              <option value="delivered">تم التوصيل</option>
+              <option value="cancelled">ملغي</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <div className="checkout-section">
-        <div className="table-responsive">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>رقم الطلب</th>
-                <th>اسم العميل</th>
-                <th>الهاتف</th>
-                <th>المحافظة والمدينة</th>
-                <th>إجمالي المبلغ</th>
-                <th>طريقة الدفع</th>
-                <th>حالة الطلب</th>
-                <th>التاريخ</th>
-                <th>تغيير الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((o) => (
-                  <tr key={o.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--color-primary-dark)' }}>{o.orderNumber}</td>
-                    <td>{o.customerName}</td>
-                    <td dir="ltr" style={{ textAlign: 'right' }}>{o.phone}</td>
-                    <td>{o.governorate} — {o.city}</td>
-                    <td style={{ fontWeight: 700 }}>{o.totalAmount + o.deliveryFee} ج.م</td>
-                    <td>{o.paymentMethod}</td>
-                    <td>
-                      <span className={`status-badge status-${o.status}`}>
-                        {ORDER_STATUS_LABELS[o.status as OrderStatus] || o.status}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-text-light)' }}>
-                      {new Date(o.createdAt).toLocaleDateString('ar-EG')}
-                    </td>
-                    <td>
-                      <select
-                        className="form-select"
-                        style={{ padding: '4px 8px', fontSize: '12px' }}
-                        value={o.status}
-                        onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                      >
-                        <option value="pending">قيد الانتظار ⏳</option>
-                        <option value="confirmed">تم التأكيد ✅</option>
-                        <option value="preparing">قيد التجهيز 👗</option>
-                        <option value="shipped">تم الشحن 🚚</option>
-                        <option value="delivered">تم التوصيل 🎉</option>
-                        <option value="cancelled">إلغاء الطلب ❌</option>
-                      </select>
+        {loading ? (
+          <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="shimmer-skeleton" style={{ height: '48px', borderRadius: '6px' }} />
+            ))}
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>رقم الطلب</th>
+                  <th>اسم العميل</th>
+                  <th>الهاتف</th>
+                  <th>المحافظة والمدينة</th>
+                  <th>إجمالي المبلغ</th>
+                  <th>طريقة الدفع</th>
+                  <th>حالة الطلب</th>
+                  <th>التاريخ</th>
+                  <th>تغيير الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.map((o) => (
+                    <tr key={o.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--color-primary-dark)' }}>
+                        {o.orderNumber}
+                      </td>
+                      <td>{o.customerName}</td>
+                      <td dir="ltr" style={{ textAlign: 'right' }}>
+                        {o.phone}
+                      </td>
+                      <td>
+                        {o.governorate} — {o.city}
+                      </td>
+                      <td style={{ fontWeight: 700 }}>
+                        {o.totalAmount + o.deliveryFee} ج.م
+                      </td>
+                      <td style={{ fontSize: '13px' }}>{o.paymentMethod}</td>
+                      <td>
+                        <span className={`status-badge status-${o.status}`}>
+                          {ORDER_STATUS_LABELS[o.status as OrderStatus] || o.status}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '12px', color: 'var(--color-text-light)' }}>
+                        {new Date(o.createdAt).toLocaleDateString('ar-EG')}
+                      </td>
+                      <td>
+                        <select
+                          className="form-select"
+                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                          value={o.status}
+                          onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                        >
+                          <option value="pending">قيد الانتظار</option>
+                          <option value="confirmed">تم التأكيد</option>
+                          <option value="preparing">قيد التجهيز</option>
+                          <option value="shipped">تم الشحن</option>
+                          <option value="delivered">تم التوصيل</option>
+                          <option value="cancelled">إلغاء الطلب</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '32px' }}>
+                      لا توجد طلبات مطابقة لهذه الحالة حالياً.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '32px' }}>
-                    لا توجد طلبات مطابقة لهذه الحالة حالياً.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

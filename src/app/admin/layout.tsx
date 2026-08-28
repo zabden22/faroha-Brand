@@ -5,6 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import {
+  DashboardIcon,
+  BagIcon,
+  FlowerIcon,
+  TagIcon,
+  TruckIcon,
+  LogoutIcon,
+  LockIcon,
+} from '@/components/Icons';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -52,7 +61,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <>
         <Navbar />
         <div style={{ padding: '80px', textAlign: 'center' }}>
-          <h2>جاري التحقق من صلاحيات الإدارة... 🔒</h2>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <LockIcon size={24} style={{ color: 'var(--color-primary)' }} />
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>جاري التحقق من صلاحيات الإدارة...</h2>
+          </div>
         </div>
       </>
     );
@@ -63,11 +75,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const adminLinks = [
-    { href: '/admin', label: 'لوحة الأحصائيات', icon: '📊' },
-    { href: '/admin/orders', label: 'إدارة الطلبات', icon: '🛍️' },
-    { href: '/admin/products', label: 'إدارة المنتجات', icon: '👗' },
-    { href: '/admin/categories', label: 'إدارة الأقسام', icon: '🏷️' },
-    { href: '/admin/delivery-fees', label: 'أسعار الشحن', icon: '🚚' },
+    { href: '/admin', label: 'لوحة الإحصائيات', icon: <DashboardIcon size={18} /> },
+    { href: '/admin/orders', label: 'إدارة الطلبات', icon: <BagIcon size={18} /> },
+    { href: '/admin/products', label: 'إدارة المنتجات', icon: <FlowerIcon size={18} /> },
+    { href: '/admin/categories', label: 'إدارة الأقسام', icon: <TagIcon size={18} /> },
+    { href: '/admin/delivery-fees', label: 'أسعار الشحن', icon: <TruckIcon size={18} /> },
   ];
 
   return (
@@ -85,8 +97,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               height={45}
               style={{ objectFit: 'contain', height: '40px', width: 'auto', marginBottom: '8px', borderRadius: '4px' }}
             />
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-primary-dark)', margin: 0 }}>
-              لوحة الإدارة ⚙️
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-primary-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <DashboardIcon size={16} />
+              <span>لوحة الإدارة</span>
             </h2>
           </div>
 
@@ -97,7 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={link.href}
                 className={`admin-sidebar-link ${pathname === link.href ? 'active' : ''}`}
               >
-                <span>{link.icon}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{link.icon}</span>
                 <span>{link.label}</span>
               </Link>
             ))}
@@ -107,9 +120,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <button
               onClick={handleLogout}
               className="btn btn-outline btn-sm"
-              style={{ width: '100%', color: '#e53e3e', borderColor: '#feb2b2' }}
+              style={{ width: '100%', color: '#e53e3e', borderColor: '#feb2b2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
-              تسجيل الخروج 🚪
+              <LogoutIcon size={16} />
+              <span>تسجيل الخروج</span>
             </button>
             <Link href="/" className="btn btn-outline btn-sm" style={{ width: '100%', textAlign: 'center' }}>
               العودة للمتجر ↗
@@ -123,4 +137,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </>
   );
 }
-

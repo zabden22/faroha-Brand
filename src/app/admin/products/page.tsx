@@ -3,6 +3,18 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Product, Category, ProductVariant } from '@/types';
+import {
+  FlowerIcon,
+  CameraIcon,
+  VideoIcon,
+  RulerIcon,
+  ColorPaletteIcon,
+  PlusIcon,
+  EditIcon,
+  TrashIcon,
+  RocketIcon,
+  RefreshIcon,
+} from '@/components/Icons';
 
 const COLOR_OPTIONS = [
   // ── المحايدات والأساسيات ──
@@ -556,17 +568,44 @@ export default function AdminProductsPage() {
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '12px',
         }}
       >
-        <h1 className="admin-page-title" style={{ marginBottom: 0 }}>
-          إدارة المنتجات 👗
-        </h1>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowAddForm(!showAddForm)}
+        <h1
+          className="admin-page-title"
+          style={{
+            marginBottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
         >
-          {showAddForm ? 'إلغاء' : '+ إضافة منتج جديد'}
-        </button>
+          <FlowerIcon size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة المنتجات
+        </h1>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={loadData}
+            className="btn btn-outline btn-sm"
+            style={{ fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <RefreshIcon size={14} />
+            تحديث
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowAddForm(!showAddForm)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            {showAddForm ? 'إلغاء' : (
+              <>
+                <PlusIcon size={16} />
+                <span>إضافة منتج جديد</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {showAddForm && (
@@ -635,8 +674,9 @@ export default function AdminProductsPage() {
 
             {/* Multiple Images Upload */}
             <div className="form-group full-width">
-              <label className="form-label">
-                صور المنتج 📷 (يمكنكِ اختيار أكثر من صورة معاً)
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CameraIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                صور المنتج (يمكنكِ اختيار أكثر من صورة معاً)
               </label>
               <input
                 type="file"
@@ -653,7 +693,7 @@ export default function AdminProductsPage() {
                   display: 'block',
                 }}
               >
-                💡 نصيحة: حددي عدة صور من جهازك بالضغط مع الاستمرار على Ctrl أو Shift. الصورة الأولى ستكون صورة الغلاف الرئيسية.
+                نصيحة: حددي عدة صور من جهازك بالضغط مع الاستمرار على Ctrl أو Shift. الصورة الأولى ستكون صورة الغلاف الرئيسية.
               </span>
             </div>
 
@@ -716,7 +756,7 @@ export default function AdminProductsPage() {
                             fontWeight: 700,
                           }}
                         >
-                          الغلاف ★
+                          الغلاف الرئيسي
                         </span>
                       )}
                       <button
@@ -750,8 +790,9 @@ export default function AdminProductsPage() {
 
             {/* Direct Video File Upload & Preview */}
             <div className="form-group full-width">
-              <label className="form-label">
-                فيديو للمنتج 🎬 (رفع مباشر من جهازك أو هاتفك)
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <VideoIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                فيديو للمنتج (رفع مباشر من جهازك أو هاتفك)
               </label>
               <input
                 type="file"
@@ -767,7 +808,7 @@ export default function AdminProductsPage() {
                   display: 'block',
                 }}
               >
-                💡 يمكنكِ رفع فيديو مصور للمنتج من الكاميرا أو المعرض مباشرة (MP4, MOV, WebM).
+                يمكنكِ رفع فيديو مصور للمنتج من الكاميرا أو المعرض مباشرة (MP4, MOV, WebM).
               </span>
 
               {newProduct.videoUrl && (
@@ -793,9 +834,13 @@ export default function AdminProductsPage() {
                         fontSize: '13px',
                         fontWeight: 600,
                         color: 'var(--color-primary-dark)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                     >
-                      🎬 معاينة الفيديو المرفوع:
+                      <VideoIcon size={14} />
+                      معاينة الفيديو المرفوع:
                     </span>
                     <button
                       type="button"
@@ -849,7 +894,10 @@ export default function AdminProductsPage() {
 
             {/* Sizes Selection (المقاسات المتاحة) */}
             <div className="form-group full-width">
-              <label className="form-label">المقاسات المتاحة للمنتج 📏</label>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <RulerIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                المقاسات المتاحة للمنتج
+              </label>
               <div
                 style={{
                   display: 'flex',
@@ -920,7 +968,7 @@ export default function AdminProductsPage() {
                 }}
               >
                 <span style={{ fontSize: '13px', color: 'var(--color-text-light)' }}>
-                  ✨ أضيفي مقاساً مخصصاً جديداً:
+                  أضيفي مقاساً مخصصاً جديداً:
                 </span>
                 <input
                   type="text"
@@ -945,7 +993,10 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="form-group full-width">
-              <label className="form-label">الألوان المتاحة للمنتج 🎨</label>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ColorPaletteIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                الألوان المتاحة للمنتج
+              </label>
               <div
                 style={{
                   display: 'flex',
@@ -1014,7 +1065,7 @@ export default function AdminProductsPage() {
                 }}
               >
                 <span style={{ fontSize: '13px', color: 'var(--color-text-light)' }}>
-                  ✨ أضيفي لوناً مخصصاً جديداً:
+                  أضيفي لوناً مخصصاً جديداً:
                 </span>
                 <input
                   type="text"
@@ -1092,9 +1143,17 @@ export default function AdminProductsPage() {
                   justifyContent: 'center',
                   opacity: isSubmitting ? 0.7 : 1,
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
                 }}
               >
-                {isSubmitting ? 'جاري حفظ ومعالجة المنتج... ⏳' : 'حفظ المنتج في قاعدة البيانات 🚀'}
+                {isSubmitting ? 'جاري حفظ ومعالجة المنتج...' : (
+                  <>
+                    <span>حفظ المنتج في قاعدة البيانات</span>
+                    <RocketIcon size={18} />
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1151,13 +1210,17 @@ export default function AdminProductsPage() {
                           style={{
                             marginRight: '6px',
                             fontSize: '11px',
-                            background: '#e0f2fe',
-                            color: '#0284c7',
+                            background: 'rgba(155, 123, 107, 0.1)',
+                            color: 'var(--color-primary-dark)',
                             padding: '2px 6px',
                             borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
                           }}
                         >
-                          🎬 فيديو
+                          <VideoIcon size={12} />
+                          فيديو
                         </span>
                       )}
                     </td>
@@ -1172,9 +1235,13 @@ export default function AdminProductsPage() {
                           fontSize: '12px',
                           fontWeight: 600,
                           color: 'var(--color-primary)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
                         }}
                       >
-                        📷 {imagesCount} صور
+                        <CameraIcon size={13} />
+                        {imagesCount} صور
                       </span>
                     </td>
                     <td
@@ -1209,14 +1276,18 @@ export default function AdminProductsPage() {
                         <button
                           className="btn btn-outline btn-sm"
                           onClick={() => openEditModal(p)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                         >
-                          تعديل ✏️
+                          <EditIcon size={13} />
+                          تعديل
                         </button>
                         <button
                           className="btn btn-danger btn-sm"
                           onClick={() => handleDeleteProduct(p.id, p.name)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                         >
-                          حذف 🗑️
+                          <TrashIcon size={13} style={{ color: 'white' }} />
+                          حذف
                         </button>
                       </div>
                     </td>
@@ -1255,8 +1326,9 @@ export default function AdminProductsPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginBottom: '16px' }}>
-              ✏️ تعديل: {editingProduct.name}
+            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <EditIcon size={18} />
+              تعديل: {editingProduct.name}
             </h3>
             <form onSubmit={handleEditProduct} className="form-grid">
               <div className="form-group full-width">
@@ -1341,8 +1413,9 @@ export default function AdminProductsPage() {
 
               {/* Edit Multi Images */}
               <div className="form-group full-width">
-                <label className="form-label">
-                  إضافة صور جديدة 📷 (يمكنكِ اختيار عدة صور معاً)
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CameraIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                  إضافة صور جديدة (يمكنكِ اختيار عدة صور معاً)
                 </label>
                 <input
                   type="file"

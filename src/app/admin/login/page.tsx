@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { LockIcon, RocketIcon } from '@/components/Icons';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -77,16 +78,17 @@ export default function AdminLoginPage() {
             {error && (
               <div
                 style={{
-                  background: '#f8d7da',
-                  color: '#721c24',
+                  background: 'var(--color-error-light)',
+                  color: 'var(--color-error)',
                   padding: '12px',
                   borderRadius: 'var(--radius-md)',
                   marginBottom: '16px',
                   fontSize: '13px',
                   textAlign: 'right',
+                  border: '1px solid var(--color-error)',
                 }}
               >
-                ⚠️ {error}
+                {error}
               </div>
             )}
 
@@ -115,17 +117,23 @@ export default function AdminLoginPage() {
                 />
               </div>
 
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 14px', borderRadius: '6px', fontSize: '12px', color: '#666', lineHeight: 1.5 }}>
-                🔒 متاح الدخول حصرياً للحسابات المصرح لها بإدارة FarOha_Brand.
+              <div style={{ background: 'var(--color-bg-alt)', padding: '10px 14px', borderRadius: '6px', fontSize: '12px', color: 'var(--color-text-light)', lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <LockIcon size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                <span>متاح الدخول حصرياً للحسابات المصرح لها بإدارة FarOha_Brand.</span>
               </div>
 
               <button
                 type="submit"
                 className="btn btn-primary btn-lg"
                 disabled={isSubmitting}
-                style={{ marginTop: '8px', justifyContent: 'center' }}
+                style={{ marginTop: '8px', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
               >
-                {isSubmitting ? 'جاري التحقق...' : 'دخول لوحة التحكم 🚀'}
+                {isSubmitting ? 'جاري التحقق...' : (
+                  <>
+                    <span>دخول لوحة التحكم</span>
+                    <RocketIcon size={18} />
+                  </>
+                )}
               </button>
             </form>
 
